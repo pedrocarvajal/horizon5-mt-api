@@ -1,15 +1,25 @@
-from rest_framework.permissions import BasePermission
+from __future__ import annotations
 
-from app.models import Account
+from typing import TYPE_CHECKING, cast
+
+from app.http.permissions.base import BaseAppPermission
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
+
+    from app.models.user import User
 
 
-class IsAccountOwner(BasePermission):
+class IsAccountOwner(BaseAppPermission):
     """Checks that the authenticated user owns the target account."""
 
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         account_id = view.kwargs.get("id")
+
         if not account_id:
             return False
-        return Account.objects.filter(id=account_id, user=request.user).exists()
+
+        user = cast("User", request.user)
+
+        return self.is_account_owner(user, account_id)

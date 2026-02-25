@@ -20,7 +20,7 @@ def _check_nesting_depth(data, current_depth=0):
 
 
 class PushEventRequestSerializer(serializers.Serializer):
-    key = serializers.CharField(max_length=255)
+    key = serializers.CharField(min_length=1, max_length=255)
     payload = serializers.DictField()
 
     def validate_key(self, value):

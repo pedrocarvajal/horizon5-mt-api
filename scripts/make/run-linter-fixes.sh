@@ -7,9 +7,9 @@ log_setup "run-linter-fixes"
 log_title "LINTER FIXES"
 
 log_info "Applying ruff formatting..."
-ruff format .
+uv run ruff format .
 
 log_info "Running ruff auto-fix..."
-ruff check --fix .
+uv run ruff check --fix .
 
 log_info "Done"

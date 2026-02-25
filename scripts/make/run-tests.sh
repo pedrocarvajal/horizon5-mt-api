@@ -7,6 +7,6 @@ log_setup "run-tests"
 log_title "RUNNING TESTS"
 
 log_info "Executing pytest..."
-python -m pytest -v
+docker compose exec horizon-mt-api-web uv run python -m pytest -v
 
 log_info "Done"

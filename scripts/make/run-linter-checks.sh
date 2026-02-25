@@ -24,12 +24,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 log_info "Checking formatting with ruff format..."
-ruff format --check "$TARGET"
+uv run ruff format --check "$TARGET"
 
 log_info "Running ruff lint checks..."
-ruff check "$TARGET"
+uv run ruff check "$TARGET"
 
 log_info "Running pyright type checks..."
-pyright
+uv run pyright
 
 log_info "All checks passed"

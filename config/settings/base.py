@@ -13,7 +13,6 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 ALLOWED_HOSTS: list[str] = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])  # type: ignore[arg-type]
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -96,13 +95,11 @@ REST_FRAMEWORK = {
         "role_platform": None,
         "role_producer": "60/minute",
         "anon": "50/hour",
-        "login": "5/minute",
-        "login_email": "10/hour",
     },
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
-    "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",
+    "EXCEPTION_HANDLER": "app.http.exceptions.base.exception_handler",
 }
 
 SIMPLE_JWT = {

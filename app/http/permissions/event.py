@@ -2,95 +2,93 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from rest_framework.permissions import BasePermission
-
 from app.enums import SystemRole
-from app.models import Account
+from app.http.permissions.base import BaseAppPermission
 
 if TYPE_CHECKING:
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
+
     from app.models.user import User
 
 
-def _is_root(user: User) -> bool:
-    return user.role == SystemRole.ROOT
-
-
-def _is_account_owner(user, account_id):
-    return Account.objects.filter(id=account_id, user=user).exists()
-
-
-class CanPushEvents(BasePermission):
+class CanPushEvents(BaseAppPermission):
     """Root or account owner with producer/root system role."""
 
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         user = cast("User", request.user)
-        if _is_root(user):
+
+        if self.is_root(user):
             return True
+
         account_id = view.kwargs.get("id")
-        return _is_account_owner(user, account_id) and user.role in (
+
+        return self.is_account_owner(user, account_id) and user.role in (
             SystemRole.ROOT,
             SystemRole.PRODUCER,
         )
 
 
-class CanConsumeEvents(BasePermission):
+class CanConsumeEvents(BaseAppPermission):
     """Root or account owner with platform/root system role."""
 
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         user = cast("User", request.user)
-        if _is_root(user):
+
+        if self.is_root(user):
             return True
+
         account_id = view.kwargs.get("id")
-        return _is_account_owner(user, account_id) and user.role in (
+
+        return self.is_account_owner(user, account_id) and user.role in (
             SystemRole.ROOT,
             SystemRole.PLATFORM,
         )
 
 
-class CanAckEvents(BasePermission):
+class CanAckEvents(BaseAppPermission):
     """Root or account owner with platform/root system role."""
 
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         user = cast("User", request.user)
-        if _is_root(user):
+
+        if self.is_root(user):
             return True
+
         account_id = view.kwargs.get("id")
-        return _is_account_owner(user, account_id) and user.role in (
+
+        return self.is_account_owner(user, account_id) and user.role in (
             SystemRole.ROOT,
             SystemRole.PLATFORM,
         )
 
 
-class CanReadHistory(BasePermission):
+class CanReadHistory(BaseAppPermission):
     """Root or account owner with any system role."""
 
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         user = cast("User", request.user)
-        if _is_root(user):
+
+        if self.is_root(user):
             return True
+
         account_id = view.kwargs.get("id")
-        return _is_account_owner(user, account_id)
+
+        return self.is_account_owner(user, account_id)
 
 
-class CanReadResponses(BasePermission):
+class CanReadResponses(BaseAppPermission):
     """Root or account owner with producer/root system role."""
 
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         user = cast("User", request.user)
-        if _is_root(user):
+
+        if self.is_root(user):
             return True
+
         account_id = view.kwargs.get("id")
-        return _is_account_owner(user, account_id) and user.role in (
+
+        return self.is_account_owner(user, account_id) and user.role in (
             SystemRole.ROOT,
             SystemRole.PRODUCER,
         )

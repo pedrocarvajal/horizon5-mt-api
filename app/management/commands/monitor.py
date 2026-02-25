@@ -16,8 +16,10 @@ class Command(BaseCommand):
     def handle(self, *_args, **_options):
         logger.info("monitor_started", checks=len(CHECKS))
         results = []
+
         for check_class in CHECKS:
             check = check_class()
+
             try:
                 result = check.run()
                 results.append(result)
@@ -27,6 +29,7 @@ class Command(BaseCommand):
 
         warnings = [r for r in results if r["status"] == "warning"]
         errors = [r for r in results if r["status"] == "error"]
+
         logger.info(
             "monitor_completed",
             total=len(results),

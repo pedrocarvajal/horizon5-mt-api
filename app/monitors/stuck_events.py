@@ -1,6 +1,7 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import structlog
+from django.utils import timezone
 
 from app.collections.event import Event
 from app.enums import EventStatus
@@ -12,7 +13,7 @@ class StuckEventsCheck:
     name = "stuck_events"
 
     def run(self):
-        threshold = datetime.now(UTC) - timedelta(hours=24)
+        threshold = timezone.now() - timedelta(hours=24)
         count = Event.count(
             {
                 "status": EventStatus.DELIVERED,

@@ -1,7 +1,7 @@
-from datetime import UTC, datetime
 from typing import ClassVar
 
 from bson import ObjectId
+from django.utils import timezone
 
 from app.database.mongodb import get_collection
 
@@ -21,11 +21,12 @@ class BaseDocument:
 
     @classmethod
     def create(cls, data: dict) -> dict:
-        now = datetime.now(UTC)
+        now = timezone.now()
         data.setdefault("created_at", now)
         data.setdefault("updated_at", now)
         result = cls.collection().insert_one(data)
         data["_id"] = result.inserted_id
+
         return data
 
     @classmethod
@@ -50,7 +51,8 @@ class BaseDocument:
 
     @classmethod
     def update_one(cls, document_id: str, data: dict) -> dict | None:
-        data["updated_at"] = datetime.now(UTC)
+        data["updated_at"] = timezone.now()
+
         return cls.collection().find_one_and_update(
             {"_id": ObjectId(document_id)},
             {"$set": data},

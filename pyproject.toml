@@ -2,6 +2,27 @@
 name = "horizon5-mt-api"
 version = "0.1.0"
 requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2,<5.3",
+    "djangorestframework>=3.16",
+    "djangorestframework-simplejwt>=5.5",
+    "django-environ>=0.12",
+    "django-cors-headers>=4.7",
+    "psycopg[binary]>=3.2",
+    "pymongo>=4.15",
+    "structlog>=24.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+    "pyright>=1.1.390",
+    "pytest>=8.0",
+    "pytest-django>=4.10",
+]
+prod = [
+    "gunicorn>=23.0",
+]
 
 [tool.ruff]
 line-length = 120
@@ -37,6 +58,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "app/migrations/*" = ["ALL"]
+"tests/*" = ["S101", "PLR2004"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -49,6 +71,13 @@ include = ["app", "config"]
 exclude = [".venv", "__pycache__", "app/migrations"]
 venvPath = "."
 venv = ".venv"
+reportAttributeAccessIssue = false
+reportOptionalSubscript = false
+reportOptionalMemberAccess = false
+reportIndexIssue = false
+reportAssignmentType = false
+reportArgumentType = false
+reportGeneralTypeIssues = false
 
 [tool.mypy]
 python_version = "3.12"

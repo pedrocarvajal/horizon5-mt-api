@@ -6,7 +6,7 @@ log_setup "run-db-seed"
 
 log_title "DATABASE SEED"
 
-log_info "Creating superuser (if not exists)..."
-python manage.py createsuperuser --noinput 2>/dev/null || log_warning "Superuser already exists"
+log_info "Running seed command..."
+docker compose exec horizon-mt-api-web uv run python manage.py seed
 
 log_info "Done"

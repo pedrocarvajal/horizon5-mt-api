@@ -7,6 +7,6 @@ log_setup "run-db-migrate"
 log_title "DATABASE MIGRATIONS"
 
 log_info "Running Django migrations..."
-python manage.py migrate
+docker compose exec horizon-mt-api-web uv run python manage.py migrate
 
 log_info "Done"

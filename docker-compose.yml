@@ -8,7 +8,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -25,7 +25,7 @@ services:
     volumes:
       - mongodb_data:/data/db
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:27018:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
@@ -36,17 +36,34 @@ services:
 
   horizon-mt-api-migrate:
     build: .
-    command: python manage.py migrate
+    command: uv run python manage.py migrate
     env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
     depends_on:
       horizon-mt-api-postgres:
         condition: service_healthy
     networks:
       - backend
 
+  horizon-mt-api-seed:
+    build: .
+    command: uv run python manage.py seed
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
+    depends_on:
+      horizon-mt-api-migrate:
+        condition: service_completed_successfully
+    networks:
+      - backend
+
   horizon-mt-api-web:
     build: .
     env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@horizon-mt-api-mongodb:27017/${POSTGRES_DB}?authSource=admin&directConnection=true
     ports:
       - "8000:8000"
     depends_on:
@@ -63,6 +80,9 @@ services:
     build: .
     command: supercronic /app/crontab
     env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@horizon-mt-api-mongodb:27017/${POSTGRES_DB}?authSource=admin&directConnection=true
     depends_on:
       horizon-mt-api-postgres:
         condition: service_healthy
