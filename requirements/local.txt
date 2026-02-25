@@ -1,0 +1,5 @@
+-r base.txt
+ruff>=0.14.0
+pyright>=1.1.390
+pytest>=8.0
+pytest-django>=4.10

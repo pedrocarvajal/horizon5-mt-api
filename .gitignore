@@ -1,74 +1,36 @@
-# Compiled objects
-*.o
-*.obj
-*.lo
-*.slo
-
-# Precompiled headers
-*.gch
-*.pch
-
-# Compiled libraries
-*.lib
-*.a
-*.la
-*.lai
+__pycache__/
+*.py[cod]
+*$py.class
 *.so
-*.so.*
-*.dll
-*.dylib
 
-# Executables
-*.exe
-*.out
-*.app
+.venv/
+venv/
+env/
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Build directories
-build/
-cmake-build-*/
-out/
-dist/
-
-# CMake generated
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-CTestTestfile.cmake
-CPackConfig.cmake
-CPackSourceConfig.cmake
-compile_commands.json
-install_manifest.txt
-
-# IDE / Editor
-.claude/
-.vscode/
-.idea/
-.cache/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-*.logs
-logs/
-
-# Environment
 .env
 
-# Storage
-storage/
+*.egg-info/
+dist/
+build/
+*.egg
 
-# Claude
-.mcp.json
-remind.md
+db.sqlite3
+
+*.log
+logs/
+
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+staticfiles/
+static/
+
+*.pyc
+
+.idea/
+.vscode/
+
+*.mo
+*.pot

@@ -1,38 +1,31 @@
-CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I.
-SRC = $(shell find . -name '*.cpp' ! -path './libraries/*' ! -path './dist/*' ! -path './scripts/*')
-DIST = dist
-OUT = $(DIST)/index
+.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-db-migrate run-db-seed run-tests run-linter-checks run-linter-fixes run-hooks-install
 
-ifeq ($(DEBUG),1)
-	CXXFLAGS += -g -DDEBUG
-else
-	CXXFLAGS += -O2
-endif
+run-dev:
+	@bash scripts/make/run-dev.sh
 
-compile:
-	@mkdir -p $(DIST)
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(OUT)
+run-docker-up:
+	@bash scripts/make/run-docker-up.sh
 
-run: compile
-	./$(OUT)
+run-docker-build:
+	@bash scripts/make/run-docker-build.sh
 
-clean:
-	rm -rf $(DIST)
+run-docker-down:
+	@bash scripts/make/run-docker-down.sh
 
-lint:
-ifeq ($(SRC),)
-	@echo "No source files to lint"
-else
-	@cppcheck --enable=all --std=c++17 --suppress=missingIncludeSystem -I. $(SRC) 2>&1
-endif
+run-db-migrate:
+	@bash scripts/make/run-db-migrate.sh
 
-format:
-	@echo "Formatting files..."
-	@find . -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.c' \) ! -path './dist/*' ! -path './libraries/*' | while read file; do \
-		echo "  $$file"; \
-		uncrustify -c uncrustify.cfg --replace --no-backup "$$file"; \
-	done
-	@echo "Done"
+run-db-seed:
+	@bash scripts/make/run-db-seed.sh
 
-.PHONY: compile run clean lint format
+run-tests:
+	@bash scripts/make/run-tests.sh
+
+run-linter-checks:
+	@bash scripts/make/run-linter-checks.sh
+
+run-linter-fixes:
+	@bash scripts/make/run-linter-fixes.sh
+
+run-hooks-install:
+	@bash scripts/make/run-hooks-install.sh

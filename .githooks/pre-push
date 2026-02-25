@@ -1,0 +1,30 @@
+#!/bin/bash
+set -e
+
+REMOTE="$1"
+REMOTE_URL="$2"
+
+TESTABLE_PATHS="app/http/ app/models/ app/enums/ app/collections/ app/database/ app/monitors/"
+
+CHANGED_FILES=$(git diff --name-only "$(git merge-base HEAD origin/main)"..HEAD 2>/dev/null || echo "")
+
+if [ -z "$CHANGED_FILES" ]; then
+  echo "[pre-push] No changed files detected, skipping tests"
+  exit 0
+fi
+
+NEEDS_TESTS=false
+for path in $TESTABLE_PATHS; do
+  if echo "$CHANGED_FILES" | grep -q "^$path"; then
+    NEEDS_TESTS=true
+    break
+  fi
+done
+
+if [ "$NEEDS_TESTS" = true ]; then
+  echo "[pre-push] Testable changes detected, running tests..."
+  make run-tests
+  echo "[pre-push] All tests passed"
+else
+  echo "[pre-push] No testable changes, skipping tests"
+fi
