@@ -4,14 +4,13 @@ import structlog
 from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
 from app.http.controllers.base import BaseController
 from app.http.middleware.login_throttle import LoginThrottle
 from app.http.requests.auth.login import LoginRequestSerializer
-from app.http.resources.user import UserResource
 
 logger = structlog.get_logger("audit")
 
@@ -19,12 +18,10 @@ logger = structlog.get_logger("audit")
 class AuthController(BaseController):
     permissions: ClassVar[dict] = {
         "login": [AllowAny],
-        "me": [IsAuthenticated],
     }
 
     throttles: ClassVar[dict] = {
         "login": [LoginThrottle],
-        "me": [],
     }
 
     @action(detail=False, methods=["post"], url_path="login")
@@ -67,14 +64,6 @@ class AuthController(BaseController):
             data={
                 "access": str(token),
             },
-        )
-
-    @action(detail=False, methods=["get"], url_path="me")
-    def me(self, request) -> Response:
-        serializer = UserResource(request.user)
-
-        return self.response(
-            data=serializer.data,
         )
 
     def _get_client_ip(self, request) -> str:

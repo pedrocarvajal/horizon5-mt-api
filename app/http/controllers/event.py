@@ -39,7 +39,7 @@ class EventController(BaseController):
         event = Event.create(
             {
                 "account_id": str(id),
-                "user_id": str(request.user.id),
+                "user_id": str(request.user.pk),
                 "consumer_id": None,
                 "key": str(serializer.validated_data["key"]),
                 "payload": serializer.validated_data["payload"],
@@ -62,7 +62,7 @@ class EventController(BaseController):
         serializer.is_valid(raise_exception=True)
 
         limit = serializer.validated_data["limit"]
-        consumer_id = str(request.user.id)
+        consumer_id = str(request.user.pk)
         now = timezone.now()
         consumed = []
 

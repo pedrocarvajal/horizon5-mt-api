@@ -23,7 +23,7 @@ class LoginThrottle(BaseThrottle):
     CACHE_KEY_LOCK: str = "login_lock:{identifier}"
 
     def allow_request(self, request: Request, _view: APIView) -> bool:
-        email: str = request.data.get("email", "")
+        email = str(request.data.get("email", ""))
         ip: str | None = self.get_ident(request)
 
         if email and self._is_locked(email):

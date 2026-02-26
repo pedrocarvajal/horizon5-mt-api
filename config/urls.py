@@ -1,10 +1,7 @@
-from django.urls import include, path
-
 from app.http.controllers.health import HealthController
+from app.routing import Route
 
-health_check = HealthController.as_view({"get": "check"})
-
-urlpatterns = [
-    path("health/", health_check),
-    path("api/v1/", include("app.urls")),
-]
+urlpatterns = Route.collect(
+    Route.get("health/", HealthController, "check"),
+    Route.prefix("api/v1").include("app.urls"),
+)

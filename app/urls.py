@@ -1,23 +1,16 @@
-from django.urls import path
-
 from app.http.controllers.auth import AuthController
 from app.http.controllers.event import EventController
+from app.routing import Route
 
-auth_login = AuthController.as_view({"post": "login"})
-auth_me = AuthController.as_view({"get": "me"})
-
-event_push = EventController.as_view({"post": "push"})
-event_consume = EventController.as_view({"post": "consume"})
-event_history = EventController.as_view({"get": "history"})
-event_ack = EventController.as_view({"patch": "ack"})
-event_response = EventController.as_view({"get": "event_response"})
-
-urlpatterns = [
-    path("auth/login/", auth_login),
-    path("auth/me/", auth_me),
-    path("accounts/<uuid:id>/events/", event_push),
-    path("accounts/<uuid:id>/events/consume/", event_consume),
-    path("accounts/<uuid:id>/events/history/", event_history),
-    path("accounts/<uuid:id>/events/<str:event_id>/ack/", event_ack),
-    path("accounts/<uuid:id>/events/<str:event_id>/response/", event_response),
-]
+urlpatterns = Route.collect(
+    Route.prefix("auth").group(
+        Route.post("login/", AuthController, "login"),
+    ),
+    Route.prefix("accounts/<uuid:id>/events").group(
+        Route.post("", EventController, "push"),
+        Route.post("consume/", EventController, "consume"),
+        Route.get("history/", EventController, "history"),
+        Route.patch("<str:event_id>/ack/", EventController, "ack"),
+        Route.get("<str:event_id>/response/", EventController, "event_response"),
+    ),
+)
