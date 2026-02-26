@@ -8,7 +8,9 @@ class EventKey(Enum):
     GET_ORDER = "get.order"
     PUT_ORDER = "put.order"
     DELETE_ORDER = "delete.order"
-    GET_ACCOUNT = "get.account"
+    GET_ACCOUNT_INFO = "get.account.info"
+    GET_KLINES = "get.klines"
+    GET_TICKER = "get.ticker"
     PATCH_ACCOUNT_DISABLE = "patch.account.disable"
     PATCH_ACCOUNT_ENABLE = "patch.account.enable"
 
@@ -35,7 +37,9 @@ class EventKey(Enum):
             EventKey.DELETE_ORDER: {
                 "id": {"type": "integer", "required": True},
             },
-            EventKey.GET_ACCOUNT: {},
+            EventKey.GET_ACCOUNT_INFO: {},
+            EventKey.GET_KLINES: {},
+            EventKey.GET_TICKER: {},
             EventKey.PATCH_ACCOUNT_DISABLE: {},
             EventKey.PATCH_ACCOUNT_ENABLE: {},
         }

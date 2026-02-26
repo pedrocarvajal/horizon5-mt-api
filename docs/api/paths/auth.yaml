@@ -1,0 +1,29 @@
+login:
+  post:
+    tags: [Auth]
+    summary: Login
+    description: |
+      Authenticates a user and returns a JWT access token.
+
+      **Permissions:** Public (no authentication required).
+
+      **Rate limiting:**
+      - Per IP: 5 requests / 60 seconds
+      - Per email: 10 requests / 3600 seconds
+      - Account lockout: 10 consecutive failures locks the account for 900 seconds
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/LoginRequest"
+    responses:
+      "200":
+        description: Login successful
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                access: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."

@@ -1,0 +1,50 @@
+openapi: 3.1.0
+info:
+  title: Horizon5 MT API
+  version: 1.0.0
+  description: |
+    Event-driven trading API for MetaTrader account management.
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Health
+    description: System health checks
+  - name: Auth
+    description: Authentication
+  - name: Events
+    description: Event management (keys, push, consume, ack, history, response)
+
+paths:
+  /health/:
+    $ref: "paths/health.yaml#/health"
+  /api/v1/auth/login/:
+    $ref: "paths/auth.yaml#/login"
+  /api/v1/events/keys/:
+    $ref: "paths/events.yaml#/keys"
+  /api/v1/accounts/{account_id}/events:
+    $ref: "paths/events.yaml#/push"
+  /api/v1/accounts/{account_id}/events/consume/:
+    $ref: "paths/events.yaml#/consume"
+  /api/v1/accounts/{account_id}/events/history/:
+    $ref: "paths/events.yaml#/history"
+  /api/v1/accounts/{account_id}/events/{event_id}/ack/:
+    $ref: "paths/events.yaml#/ack"
+  /api/v1/accounts/{account_id}/events/{event_id}/response/:
+    $ref: "paths/events.yaml#/response"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    $ref: "components/parameters.yaml"
+  schemas:
+    $ref: "components/schemas.yaml"

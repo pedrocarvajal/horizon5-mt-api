@@ -1,13 +1,16 @@
-.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-db-migrate run-db-seed run-tests run-linter-checks run-linter-fixes run-hooks-install
+.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-db-migrate run-db-seed run-tests run-linter-checks run-linter-fixes run-hooks-install run-docs-bundle
 
 run-dev:
 	@bash scripts/make/run-dev.sh
+	@bash scripts/make/run-docs-bundle.sh
 
 run-docker-up:
 	@bash scripts/make/run-docker-up.sh
+	@bash scripts/make/run-docs-bundle.sh
 
 run-docker-build:
 	@bash scripts/make/run-docker-build.sh
+	@bash scripts/make/run-docs-bundle.sh
 
 run-docker-down:
 	@bash scripts/make/run-docker-down.sh
@@ -29,3 +32,6 @@ run-linter-fixes:
 
 run-hooks-install:
 	@bash scripts/make/run-hooks-install.sh
+
+run-docs-bundle:
+	@bash scripts/make/run-docs-bundle.sh

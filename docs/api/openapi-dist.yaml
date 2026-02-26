@@ -1,0 +1,490 @@
+openapi: 3.1.0
+info:
+  title: Horizon5 MT API
+  version: 1.0.0
+  description: |
+    Event-driven trading API for MetaTrader account management.
+servers:
+  - url: http://localhost:8000
+    description: Local development
+security:
+  - bearerAuth: []
+tags:
+  - name: Health
+    description: System health checks
+  - name: Auth
+    description: Authentication
+  - name: Events
+    description: Event management (keys, push, consume, ack, history, response)
+paths:
+  /health/:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: |
+        Returns status of PostgreSQL and MongoDB connections.
+
+        **Permissions:** Authenticated + role `root` or `platform`.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All systems operational
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  status: ok
+                  checks:
+                    postgres: ok
+                    mongodb: ok
+        '503':
+          description: One or more systems degraded
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  status: degraded
+                  checks:
+                    postgres: ok
+                    mongodb: error
+  /api/v1/auth/login/:
+    post:
+      tags:
+        - Auth
+      summary: Login
+      description: |
+        Authenticates a user and returns a JWT access token.
+
+        **Permissions:** Public (no authentication required).
+
+        **Rate limiting:**
+        - Per IP: 5 requests / 60 seconds
+        - Per email: 10 requests / 3600 seconds
+        - Account lockout: 10 consecutive failures locks the account for 900 seconds
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  access: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  /api/v1/events/keys/:
+    get:
+      tags:
+        - Events
+      summary: List event keys
+      description: |
+        Returns all available event keys with their names and payload schemas.
+
+        **Permissions:** Authenticated (any role).
+      responses:
+        '200':
+          description: List of event keys
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - key: post.order
+                    name: POST_ORDER
+                    schema:
+                      symbol:
+                        type: string
+                        required: true
+                      strategy:
+                        type: integer
+                        required: true
+                      type:
+                        type: string
+                        required: true
+                        choices:
+                          - buy
+                          - sell
+                      volume:
+                        type: float
+                        required: true
+                        min_value: 0.01
+                      price:
+                        type: float
+                        required: false
+                      stop_loss:
+                        type: float
+                        required: false
+                      take_profit:
+                        type: float
+                        required: false
+                      comment:
+                        type: string
+                        required: false
+                        max_length: 255
+                  - key: get.order
+                    name: GET_ORDER
+                    schema:
+                      id:
+                        type: integer
+                        required: true
+                  - key: put.order
+                    name: PUT_ORDER
+                    schema:
+                      id:
+                        type: integer
+                        required: true
+                      stop_loss:
+                        type: float
+                        required: false
+                      take_profit:
+                        type: float
+                        required: false
+                  - key: delete.order
+                    name: DELETE_ORDER
+                    schema:
+                      id:
+                        type: integer
+                        required: true
+                  - key: get.account
+                    name: GET_ACCOUNT
+                    schema: {}
+                  - key: patch.account.disable
+                    name: PATCH_ACCOUNT_DISABLE
+                    schema: {}
+                  - key: patch.account.enable
+                    name: PATCH_ACCOUNT_ENABLE
+                    schema: {}
+  /api/v1/accounts/{account_id}/events:
+    post:
+      tags:
+        - Events
+      summary: Push event
+      description: |
+        Creates a new event for the specified account. The payload is validated
+        against the schema defined by the event key.
+
+        **Permissions:** `root` OR account owner with role `root` | `producer`
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushEventRequest'
+            examples:
+              post_order:
+                summary: Create a buy order
+                value:
+                  key: post.order
+                  payload:
+                    symbol: EURUSD
+                    strategy: 1
+                    type: buy
+                    volume: 0.1
+                    stop_loss: 1.08
+                    take_profit: 1.12
+              get_account:
+                summary: Request account info
+                value:
+                  key: get.account
+                  payload: {}
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Event'
+  /api/v1/accounts/{account_id}/events/consume/:
+    post:
+      tags:
+        - Events
+      summary: Consume events
+      description: |
+        Atomically claims pending events for processing. Each event transitions
+        from `pending` to `delivered` and is assigned to the requesting user as consumer.
+
+        Events are returned in FIFO order (oldest first).
+
+        **Permissions:** `root` OR account owner with role `root` | `platform`
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of events to consume (1-100, default 50)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Consumed events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Event'
+                      meta:
+                        type: object
+                        properties:
+                          count:
+                            type: integer
+  /api/v1/accounts/{account_id}/events/history/:
+    get:
+      tags:
+        - Events
+      summary: Event history
+      description: |
+        Returns events for the account, sorted by `created_at` descending (newest first).
+
+        **Permissions:** `root` OR account owner (any role)
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/EventStatus'
+        - name: key
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/EventKeyEnum'
+      responses:
+        '200':
+          description: Event list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Event'
+  /api/v1/accounts/{account_id}/events/{event_id}/ack/:
+    patch:
+      tags:
+        - Events
+      summary: Acknowledge event
+      description: |
+        Marks a delivered event as processed. Optionally attaches a response payload.
+
+        Only events in `delivered` status can be acknowledged.
+
+        **Permissions:** `root` OR account owner with role `root` | `platform`
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AckEventRequest'
+            examples:
+              with_response:
+                summary: Ack with response data
+                value:
+                  response:
+                    ticket: 12345
+                    status: filled
+                    open_price: 1.105
+              without_response:
+                summary: Ack without response
+                value: {}
+      responses:
+        '200':
+          description: Event acknowledged
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Event'
+  /api/v1/accounts/{account_id}/events/{event_id}/response/:
+    get:
+      tags:
+        - Events
+      summary: Get event response
+      description: |
+        Returns the response payload attached to an acknowledged event.
+
+        **Permissions:** `root` OR account owner with role `root` | `producer`
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Event response data
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  response:
+                    ticket: 12345
+                    status: filled
+                    open_price: 1.105
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    AccountId:
+      name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EventId:
+      name: event_id
+      in: path
+      required: true
+      description: 24-character hex string (MongoDB ObjectId)
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{24}$
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 5
+          maxLength: 254
+          default: root@mail.co
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          default: 123456789*
+    EventKeyEnum:
+      type: string
+      enum:
+        - post.order
+        - get.order
+        - put.order
+        - delete.order
+        - get.account
+        - patch.account.disable
+        - patch.account.enable
+    PushEventRequest:
+      type: object
+      required:
+        - key
+        - payload
+      properties:
+        key:
+          $ref: '#/components/schemas/EventKeyEnum'
+        payload:
+          type: object
+          description: Validated against the event key schema. Max 65536 bytes, max 5 nesting levels.
+    SuccessEnvelope:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data: {}
+        meta:
+          type: object
+    EventStatus:
+      type: string
+      enum:
+        - pending
+        - delivered
+        - processed
+        - failed
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        consumer_id:
+          type: string
+          nullable: true
+        account_id:
+          type: string
+        user_id:
+          type: string
+        key:
+          $ref: '#/components/schemas/EventKeyEnum'
+        payload:
+          type: object
+        response:
+          type: object
+          nullable: true
+        status:
+          $ref: '#/components/schemas/EventStatus'
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+        processed_at:
+          type: string
+          format: date-time
+          nullable: true
+        attempts:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AckEventRequest:
+      type: object
+      properties:
+        response:
+          type: object
+          nullable: true
+          description: Optional response data. Max 65536 bytes, max 5 nesting levels.

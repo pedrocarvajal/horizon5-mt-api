@@ -1,0 +1,278 @@
+keys:
+  get:
+    tags: [Events]
+    summary: List event keys
+    description: |
+      Returns all available event keys with their names and payload schemas.
+
+      **Permissions:** Authenticated (any role).
+    responses:
+      "200":
+        description: List of event keys
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                - key: post.order
+                  name: POST_ORDER
+                  schema:
+                    symbol:
+                      type: string
+                      required: true
+                    strategy:
+                      type: integer
+                      required: true
+                    type:
+                      type: string
+                      required: true
+                      choices: [buy, sell]
+                    volume:
+                      type: float
+                      required: true
+                      min_value: 0.01
+                    price:
+                      type: float
+                      required: false
+                    stop_loss:
+                      type: float
+                      required: false
+                    take_profit:
+                      type: float
+                      required: false
+                    comment:
+                      type: string
+                      required: false
+                      max_length: 255
+                - key: get.order
+                  name: GET_ORDER
+                  schema:
+                    id:
+                      type: integer
+                      required: true
+                - key: put.order
+                  name: PUT_ORDER
+                  schema:
+                    id:
+                      type: integer
+                      required: true
+                    stop_loss:
+                      type: float
+                      required: false
+                    take_profit:
+                      type: float
+                      required: false
+                - key: delete.order
+                  name: DELETE_ORDER
+                  schema:
+                    id:
+                      type: integer
+                      required: true
+                - key: get.account
+                  name: GET_ACCOUNT
+                  schema: {}
+                - key: patch.account.disable
+                  name: PATCH_ACCOUNT_DISABLE
+                  schema: {}
+                - key: patch.account.enable
+                  name: PATCH_ACCOUNT_ENABLE
+                  schema: {}
+
+push:
+  post:
+    tags: [Events]
+    summary: Push event
+    description: |
+      Creates a new event for the specified account. The payload is validated
+      against the schema defined by the event key.
+
+      **Permissions:** `root` OR account owner with role `root` | `producer`
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/PushEventRequest"
+          examples:
+            post_order:
+              summary: Create a buy order
+              value:
+                key: post.order
+                payload:
+                  symbol: EURUSD
+                  strategy: 1
+                  type: buy
+                  volume: 0.1
+                  stop_loss: 1.0800
+                  take_profit: 1.1200
+            get_account:
+              summary: Request account info
+              value:
+                key: get.account
+                payload: {}
+    responses:
+      "201":
+        description: Event created
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "../components/schemas.yaml#/SuccessEnvelope"
+                - type: object
+                  properties:
+                    data:
+                      $ref: "../components/schemas.yaml#/Event"
+
+consume:
+  post:
+    tags: [Events]
+    summary: Consume events
+    description: |
+      Atomically claims pending events for processing. Each event transitions
+      from `pending` to `delivered` and is assigned to the requesting user as consumer.
+
+      Events are returned in FIFO order (oldest first).
+
+      **Permissions:** `root` OR account owner with role `root` | `platform`
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of events to consume (1-100, default 50)
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+    responses:
+      "200":
+        description: Consumed events
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "../components/schemas.yaml#/SuccessEnvelope"
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: "../components/schemas.yaml#/Event"
+                    meta:
+                      type: object
+                      properties:
+                        count:
+                          type: integer
+
+history:
+  get:
+    tags: [Events]
+    summary: Event history
+    description: |
+      Returns events for the account, sorted by `created_at` descending (newest first).
+
+      **Permissions:** `root` OR account owner (any role)
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: "../components/schemas.yaml#/EventStatus"
+      - name: key
+        in: query
+        required: false
+        schema:
+          $ref: "../components/schemas.yaml#/EventKeyEnum"
+    responses:
+      "200":
+        description: Event list
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "../components/schemas.yaml#/SuccessEnvelope"
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: "../components/schemas.yaml#/Event"
+
+ack:
+  patch:
+    tags: [Events]
+    summary: Acknowledge event
+    description: |
+      Marks a delivered event as processed. Optionally attaches a response payload.
+
+      Only events in `delivered` status can be acknowledged.
+
+      **Permissions:** `root` OR account owner with role `root` | `platform`
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+      - $ref: "../components/parameters.yaml#/EventId"
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/AckEventRequest"
+          examples:
+            with_response:
+              summary: Ack with response data
+              value:
+                response:
+                  ticket: 12345
+                  status: filled
+                  open_price: 1.1050
+            without_response:
+              summary: Ack without response
+              value: {}
+    responses:
+      "200":
+        description: Event acknowledged
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "../components/schemas.yaml#/SuccessEnvelope"
+                - type: object
+                  properties:
+                    data:
+                      $ref: "../components/schemas.yaml#/Event"
+
+response:
+  get:
+    tags: [Events]
+    summary: Get event response
+    description: |
+      Returns the response payload attached to an acknowledged event.
+
+      **Permissions:** `root` OR account owner with role `root` | `producer`
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+      - $ref: "../components/parameters.yaml#/EventId"
+    responses:
+      "200":
+        description: Event response data
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                response:
+                  ticket: 12345
+                  status: filled
+                  open_price: 1.1050

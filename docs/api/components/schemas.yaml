@@ -1,0 +1,100 @@
+SuccessEnvelope:
+  type: object
+  required: [success]
+  properties:
+    success:
+      type: boolean
+      const: true
+    message:
+      type: string
+    data: {}
+    meta:
+      type: object
+
+LoginRequest:
+  type: object
+  required: [email, password]
+  properties:
+    email:
+      type: string
+      format: email
+      minLength: 5
+      maxLength: 254
+      default: "root@mail.co"
+    password:
+      type: string
+      format: password
+      minLength: 8
+      maxLength: 128
+      default: "123456789*"
+
+PushEventRequest:
+  type: object
+  required: [key, payload]
+  properties:
+    key:
+      $ref: "#/EventKeyEnum"
+    payload:
+      type: object
+      description: Validated against the event key schema. Max 65536 bytes, max 5 nesting levels.
+
+AckEventRequest:
+  type: object
+  properties:
+    response:
+      type: object
+      nullable: true
+      description: Optional response data. Max 65536 bytes, max 5 nesting levels.
+
+Event:
+  type: object
+  properties:
+    id:
+      type: string
+    consumer_id:
+      type: string
+      nullable: true
+    account_id:
+      type: string
+    user_id:
+      type: string
+    key:
+      $ref: "#/EventKeyEnum"
+    payload:
+      type: object
+    response:
+      type: object
+      nullable: true
+    status:
+      $ref: "#/EventStatus"
+    delivered_at:
+      type: string
+      format: date-time
+      nullable: true
+    processed_at:
+      type: string
+      format: date-time
+      nullable: true
+    attempts:
+      type: integer
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+EventKeyEnum:
+  type: string
+  enum:
+    - post.order
+    - get.order
+    - put.order
+    - delete.order
+    - get.account
+    - patch.account.disable
+    - patch.account.enable
+
+EventStatus:
+  type: string
+  enum: [pending, delivered, processed, failed]

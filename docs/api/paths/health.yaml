@@ -1,0 +1,33 @@
+health:
+  get:
+    tags: [Health]
+    summary: Health check
+    description: |
+      Returns status of PostgreSQL and MongoDB connections.
+
+      **Permissions:** Authenticated + role `root` or `platform`.
+    security:
+      - bearerAuth: []
+    responses:
+      "200":
+        description: All systems operational
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                status: ok
+                checks:
+                  postgres: ok
+                  mongodb: ok
+      "503":
+        description: One or more systems degraded
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                status: degraded
+                checks:
+                  postgres: ok
+                  mongodb: error
