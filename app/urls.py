@@ -6,6 +6,9 @@ urlpatterns = Route.collect(
     Route.prefix("auth").group(
         Route.post("login/", AuthController, "login"),
     ),
+    Route.prefix("events").group(
+        Route.get("keys/", EventController, "keys"),
+    ),
     Route.prefix("accounts/<uuid:id>/events").group(
         Route.post("", EventController, "push"),
         Route.post("consume/", EventController, "consume"),

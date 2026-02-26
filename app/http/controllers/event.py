@@ -5,11 +5,12 @@ from django.utils import timezone
 from pymongo import ASCENDING, DESCENDING
 from rest_framework import serializers, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from app.collections.event import Event
-from app.enums import EventStatus
+from app.enums import EventKey, EventStatus
 from app.http.controllers.base import BaseController
 from app.http.permissions.event import CanAckEvents, CanConsumeEvents, CanPushEvents, CanReadHistory, CanReadResponses
 from app.http.requests.event.ack_event import AckEventRequestSerializer
@@ -23,12 +24,26 @@ from app.models import Account
 
 class EventController(BaseController):
     permissions: ClassVar[dict] = {
+        "keys": [IsAuthenticated],
         "push": [CanPushEvents],
         "consume": [CanConsumeEvents],
         "ack": [CanAckEvents],
         "history": [CanReadHistory],
         "event_response": [CanReadResponses],
     }
+
+    @action(detail=False, methods=["get"], url_path="keys")
+    def keys(self, _request: Request) -> Response:
+        data = [
+            {
+                "key": event_key.value,
+                "name": event_key.name,
+                "schema": event_key.schema(),
+            }
+            for event_key in EventKey
+        ]
+
+        return self.response(data=data)
 
     @action(detail=False, methods=["post"], url_path="")
     def push(self, request: Request, id: UUID) -> Response:
@@ -58,6 +73,7 @@ class EventController(BaseController):
 
     @action(detail=False, methods=["post"], url_path="consume")
     def consume(self, request: Request, id: UUID) -> Response:
+        self._validate_account(id)
         serializer = ConsumeEventRequestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
@@ -137,18 +153,18 @@ class EventController(BaseController):
 
     @action(detail=False, methods=["get"], url_path="history")
     def history(self, request: Request, id: UUID) -> Response:
+        self._validate_account(id)
         serializer = HistoryEventRequestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
         limit = serializer.validated_data["limit"]
-        cursor = serializer.validated_data.get("cursor")
         query: dict[str, Any] = {"account_id": str(id)}
 
-        if cursor:
-            query["$or"] = [
-                {"created_at": {"$lt": cursor["created_at"]}},
-                {"created_at": cursor["created_at"], "_id": {"$lt": cursor["_id"]}},
-            ]
+        if "status" in serializer.validated_data:
+            query["status"] = serializer.validated_data["status"]
+
+        if "key" in serializer.validated_data:
+            query["key"] = serializer.validated_data["key"]
 
         events = list(Event.where(query).sort([("created_at", DESCENDING), ("_id", DESCENDING)]).limit(limit))
 
@@ -158,6 +174,7 @@ class EventController(BaseController):
 
     @action(detail=True, methods=["get"], url_path="response")
     def event_response(self, _request: Request, id: UUID, event_id: str) -> Response:
+        self._validate_account(id)
         serializer = EventResponseRequestSerializer(data={"event_id": event_id})
         serializer.is_valid(raise_exception=True)
 
