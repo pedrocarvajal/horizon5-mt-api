@@ -53,7 +53,7 @@ class MediaController(BaseController):
             expires_at=now + timedelta(hours=settings.STORAGE_FILE_EXPIRATION_HOURS),
         )
 
-        return self.response(
+        return self.reply(
             data=MediaFileResource(media_file).data,
             status_code=status.HTTP_201_CREATED,
         )
@@ -64,7 +64,7 @@ class MediaController(BaseController):
         media_file = self._get_media_file(id, file_name)
 
         if media_file.expires_at < timezone.now():
-            return self.response(
+            return self.reply(
                 message="File has expired.",
                 status_code=status.HTTP_410_GONE,
             )
@@ -72,7 +72,7 @@ class MediaController(BaseController):
         file_path = self._build_file_path(media_file.user_id, media_file.created_at, file_name)
 
         if not file_path.is_file():
-            return self.response(
+            return self.reply(
                 message="File not found on disk.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
@@ -106,7 +106,7 @@ class MediaController(BaseController):
 
         media_file.delete()
 
-        return self.response(status_code=status.HTTP_204_NO_CONTENT)
+        return self.reply(status_code=status.HTTP_204_NO_CONTENT)
 
     def _validate_account(self, account_id: UUID) -> None:
         if not Account.objects.filter(id=account_id).exists():

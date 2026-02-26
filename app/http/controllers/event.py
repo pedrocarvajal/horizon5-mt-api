@@ -29,7 +29,7 @@ class EventController(BaseController):
         "consume": [CanConsumeEvents],
         "ack": [CanAckEvents],
         "history": [CanReadHistory],
-        "event_response": [CanReadResponses],
+        "response": [CanReadResponses],
     }
 
     @action(detail=False, methods=["get"], url_path="keys")
@@ -43,7 +43,7 @@ class EventController(BaseController):
             for event_key in EventKey
         ]
 
-        return self.response(data=data)
+        return self.reply(data=data)
 
     @action(detail=False, methods=["post"], url_path="")
     def push(self, request: Request, id: UUID) -> Response:
@@ -66,7 +66,7 @@ class EventController(BaseController):
             }
         )
 
-        return self.response(
+        return self.reply(
             data=EventResource(event).data,
             status_code=status.HTTP_201_CREATED,
         )
@@ -114,7 +114,7 @@ class EventController(BaseController):
             if result:
                 consumed.append(result)
 
-        return self.response(
+        return self.reply(
             data=EventResource(consumed, many=True).data,
             meta={"count": len(consumed)},
         )
@@ -148,12 +148,12 @@ class EventController(BaseController):
         )
 
         if event is None:
-            return self.response(
+            return self.reply(
                 message="Event not found or not in delivered status.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        return self.response(
+        return self.reply(
             data=EventResource(event).data,
         )
 
@@ -174,12 +174,12 @@ class EventController(BaseController):
 
         events = list(Event.where(query).sort([("created_at", DESCENDING), ("_id", DESCENDING)]).limit(limit))
 
-        return self.response(
+        return self.reply(
             data=EventResource(events, many=True).data,
         )
 
     @action(detail=True, methods=["get"], url_path="response")
-    def event_response(self, _request: Request, id: UUID, event_id: str) -> Response:
+    def response(self, _request: Request, id: UUID, event_id: str) -> Response:
         self._validate_account(id)
         serializer = EventResponseRequestSerializer(data={"event_id": event_id})
         serializer.is_valid(raise_exception=True)
@@ -194,18 +194,18 @@ class EventController(BaseController):
         )
 
         if event is None:
-            return self.response(
+            return self.reply(
                 message="Event not found.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
         if event.get("response") is None:
-            return self.response(
+            return self.reply(
                 message="No response available for this event.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        return self.response(
+        return self.reply(
             data={"response": event["response"]},
         )
 

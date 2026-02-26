@@ -48,13 +48,13 @@ class AuthController(BaseController):
         if user is None:
             LoginThrottle.record_failure(email, ip)
 
-            return self.response(
+            return self.reply(
                 message="Invalid credentials.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
 
         if not user.is_active:
-            return self.response(
+            return self.reply(
                 message="Account is inactive.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
@@ -62,7 +62,7 @@ class AuthController(BaseController):
         LoginThrottle.clear_login_attempts(email)
         token = AccessToken.for_user(user)
 
-        return self.response(
+        return self.reply(
             data={
                 "access": str(token),
             },
@@ -75,19 +75,19 @@ class AuthController(BaseController):
         api_key = ApiKey.objects.select_related("user").filter(key_hash=key_hash).first()
 
         if api_key is None:
-            return self.response(
+            return self.reply(
                 message="Invalid API key.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
 
         if not api_key.is_usable:
-            return self.response(
+            return self.reply(
                 message="API key is inactive or expired.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
 
         if not api_key.is_ip_allowed(ip):
-            return self.response(
+            return self.reply(
                 message="IP address not allowed for this API key.",
                 status_code=status.HTTP_403_FORBIDDEN,
             )
@@ -95,7 +95,7 @@ class AuthController(BaseController):
         user = api_key.user
 
         if not user.is_active:
-            return self.response(
+            return self.reply(
                 message="Account is inactive.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
@@ -103,7 +103,7 @@ class AuthController(BaseController):
         ApiKey.objects.filter(pk=api_key.pk).update(last_used_at=timezone.now())
         token = AccessToken.for_user(user)
 
-        return self.response(
+        return self.reply(
             data={
                 "access": str(token),
             },

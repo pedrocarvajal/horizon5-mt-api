@@ -16,15 +16,15 @@ from app.models.user import User
 
 class ApiKeyController(BaseController):
     permissions: ClassVar[dict] = {
-        "create": [IsApiKeyOwner],
-        "list": [IsApiKeyOwner],
+        "store": [IsApiKeyOwner],
+        "index": [IsApiKeyOwner],
         "show": [IsApiKeyOwner],
         "update": [IsApiKeyOwner],
         "destroy": [IsApiKeyOwner],
     }
 
     @action(detail=False, methods=["post"], url_path="")
-    def create(self, request) -> Response:
+    def store(self, request) -> Response:
         serializer = CreateApiKeyRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -43,14 +43,14 @@ class ApiKeyController(BaseController):
         data = self._serialize_api_key(api_key, user)
         data["key"] = raw_key
 
-        return self.response(
+        return self.reply(
             data=data,
             message="API key created. Store the key securely, it will not be shown again.",
             status_code=status.HTTP_201_CREATED,
         )
 
     @action(detail=False, methods=["get"], url_path="")
-    def list(self, request) -> Response:
+    def index(self, request) -> Response:
         user = cast(User, request.user)
 
         if self._is_root(user):
@@ -60,28 +60,28 @@ class ApiKeyController(BaseController):
 
         data = [self._serialize_api_key(key, user) for key in api_keys]
 
-        return self.response(
+        return self.reply(
             data=data,
             meta={"count": len(data)},
         )
 
-    @action(detail=False, methods=["get"], url_path="<uuid:api_key_id>")
-    def show(self, request, api_key_id=None) -> Response:
+    @action(detail=False, methods=["get"], url_path="<uuid:id>")
+    def show(self, request, id=None) -> Response:
         user = cast(User, request.user)
-        api_key = self._find_api_key(api_key_id, user)
+        api_key = self._find_api_key(id, user)
 
         data = self._serialize_api_key(api_key, user)
         data["updated_at"] = api_key.updated_at.isoformat()
 
-        return self.response(data=data)
+        return self.reply(data=data)
 
-    @action(detail=False, methods=["patch"], url_path="<uuid:api_key_id>")
-    def update(self, request, api_key_id=None) -> Response:
+    @action(detail=False, methods=["patch"], url_path="<uuid:id>")
+    def update(self, request, id=None) -> Response:
         serializer = UpdateApiKeyRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = cast(User, request.user)
-        api_key = self._find_api_key(api_key_id, user)
+        api_key = self._find_api_key(id, user)
 
         validated = serializer.validated_data
 
@@ -94,16 +94,16 @@ class ApiKeyController(BaseController):
         data = self._serialize_api_key(api_key, user)
         data["updated_at"] = api_key.updated_at.isoformat()
 
-        return self.response(data=data)
+        return self.reply(data=data)
 
-    @action(detail=False, methods=["delete"], url_path="<uuid:api_key_id>")
-    def destroy(self, request, api_key_id=None) -> Response:
+    @action(detail=False, methods=["delete"], url_path="<uuid:id>")
+    def destroy(self, request, id=None) -> Response:
         user = cast(User, request.user)
-        api_key = self._find_api_key(api_key_id, user)
+        api_key = self._find_api_key(id, user)
 
         api_key.delete()
 
-        return self.response(message="API key deleted.")
+        return self.reply(message="API key deleted.")
 
     def _find_api_key(self, api_key_id, user: User) -> ApiKey:
         queryset = ApiKey.objects.select_related("user").filter(id=api_key_id)

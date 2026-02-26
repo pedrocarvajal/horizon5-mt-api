@@ -6,7 +6,7 @@ from rest_framework import status
 
 from app.models import ApiKey
 
-URL = "/api/v1/api-keys/"
+URL = "/api/v1/api-key/"
 
 
 @pytest.mark.django_db

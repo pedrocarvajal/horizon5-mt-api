@@ -19,7 +19,7 @@ class IsApiKeyOwner(BaseAppPermission):
         if self.is_root(user):
             return True
 
-        api_key_id = view.kwargs.get("api_key_id")
+        api_key_id = view.kwargs.get("id")
 
         if api_key_id is None:
             return True

@@ -30,6 +30,29 @@ class RouteDefinition:
         return path(**kwargs)
 
 
+class MatchDefinition:
+    def __init__(self, actions: dict[str, Any], route_path: str, controller: type[ViewSetMixin]) -> None:
+        self.actions = actions
+        self.route_path = route_path
+        self.controller = controller
+        self.route_name: str | None = None
+
+    def name(self, route_name: str) -> MatchDefinition:
+        self.route_name = route_name
+
+        return self
+
+    def resolve(self, prefix: str = "", name_prefix: str = "") -> URLPattern:
+        full_path = prefix + self.route_path
+        view = self.controller.as_view(self.actions)
+        kwargs: dict[str, Any] = {"route": full_path, "view": view}
+
+        if self.route_name:
+            kwargs["name"] = name_prefix + self.route_name
+
+        return path(**kwargs)
+
+
 class IncludeDefinition:
     def __init__(self, module: str, prefix: str = "", name_prefix: str = "") -> None:
         self.module = module
@@ -66,14 +89,16 @@ class RouteRegistrar:
     def name(self, name_segment: str) -> RouteRegistrar:
         return RouteRegistrar(prefix=self._prefix, name_prefix=self._name_prefix + name_segment)
 
-    def group(self, *routes: RouteDefinition | IncludeDefinition | list) -> list[URLPattern | URLResolver]:
+    def group(
+        self, *routes: RouteDefinition | MatchDefinition | IncludeDefinition | list
+    ) -> list[URLPattern | URLResolver]:
         resolved = []
 
         for route in routes:
             if isinstance(route, list):
                 resolved.extend(route)
 
-            elif isinstance(route, (RouteDefinition, IncludeDefinition)):
+            elif isinstance(route, (RouteDefinition, MatchDefinition, IncludeDefinition)):
                 resolved.append(route.resolve(self._prefix, self._name_prefix))
 
             else:
@@ -111,6 +136,10 @@ class Route:
         return Route._route("delete", route_path, controller, action)
 
     @staticmethod
+    def match(actions: dict[str, Any], route_path: str, controller: type[ViewSetMixin]) -> MatchDefinition:
+        return MatchDefinition(actions, route_path, controller)
+
+    @staticmethod
     def prefix(segment: str) -> RouteRegistrar:
         return RouteRegistrar().prefix(segment)
 
@@ -119,7 +148,7 @@ class Route:
         return RouteRegistrar().name(name_segment)
 
     @staticmethod
-    def group(*routes: RouteDefinition | IncludeDefinition | list) -> list[URLPattern | URLResolver]:
+    def group(*routes: RouteDefinition | MatchDefinition | IncludeDefinition | list) -> list[URLPattern | URLResolver]:
         return RouteRegistrar().group(*routes)
 
     @staticmethod
@@ -128,7 +157,7 @@ class Route:
 
     @staticmethod
     def collect(
-        *items: RouteDefinition | IncludeDefinition | URLPattern | URLResolver | list,
+        *items: RouteDefinition | MatchDefinition | IncludeDefinition | URLPattern | URLResolver | list,
     ) -> list[URLPattern | URLResolver]:
         collected = []
 
@@ -136,7 +165,7 @@ class Route:
             if isinstance(item, list):
                 collected.extend(item)
 
-            elif isinstance(item, (RouteDefinition, IncludeDefinition)):
+            elif isinstance(item, (RouteDefinition, MatchDefinition, IncludeDefinition)):
                 collected.append(item.resolve())
 
             else:

@@ -23,7 +23,7 @@ class BaseController(ViewSet):
 
         return super().get_throttles()
 
-    def response(
+    def reply(
         self,
         message: str | None = None,
         data: Any = None,

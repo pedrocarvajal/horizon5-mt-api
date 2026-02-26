@@ -25,7 +25,7 @@ class HealthController(BaseController):
 
         all_ok = all(value == "ok" for value in checks.values())
 
-        return self.response(
+        return self.reply(
             data={"status": "ok" if all_ok else "degraded", "checks": checks},
             status_code=status.HTTP_200_OK if all_ok else status.HTTP_503_SERVICE_UNAVAILABLE,
         )
