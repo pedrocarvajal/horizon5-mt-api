@@ -2,6 +2,7 @@ import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from app.enums import SystemRole
 from app.models.user import User
 
 TEST_PASSWORD = "securepassword123"  # noqa: S105
@@ -9,6 +10,25 @@ TEST_PASSWORD = "securepassword123"  # noqa: S105
 
 def create_user(email: str, password: str = TEST_PASSWORD, **kwargs) -> User:
     return User.objects.create_user(email=email, password=password, **kwargs)
+
+
+@pytest.fixture()
+def root_user(db):  # noqa: ARG001
+    return create_user(email="root@test.co", role=SystemRole.ROOT)
+
+
+@pytest.fixture()
+def authenticated_client(active_user):
+    client = APIClient()
+    client.force_authenticate(user=active_user)
+    return client
+
+
+@pytest.fixture()
+def root_client(root_user):
+    client = APIClient()
+    client.force_authenticate(user=root_user)
+    return client
 
 
 @pytest.fixture(autouse=True)
