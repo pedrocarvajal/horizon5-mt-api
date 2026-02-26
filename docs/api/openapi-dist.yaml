@@ -14,8 +14,12 @@ tags:
     description: System health checks
   - name: Auth
     description: Authentication
+  - name: API Keys
+    description: API key management. Root users see all keys; regular users see only their own.
   - name: Events
     description: Event management (keys, push, consume, ack, history, response)
+  - name: Media
+    description: File upload and download management
 paths:
   /health/:
     get:
@@ -59,9 +63,14 @@ paths:
       description: |
         Authenticates a user and returns a JWT access token.
 
+        Supports two authentication modes (mutually exclusive):
+        - **Email/Password:** Provide `email` and `password` fields.
+        - **API Key:** Provide `api_key` field. The key is validated against stored hashes,
+          IP whitelist is checked, and expiration/active status is verified.
+
         **Permissions:** Public (no authentication required).
 
-        **Rate limiting:**
+        **Rate limiting (email/password mode):**
         - Per IP: 5 requests / 60 seconds
         - Per email: 10 requests / 3600 seconds
         - Account lockout: 10 consecutive failures locks the account for 900 seconds
@@ -71,7 +80,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              oneOf:
+                - $ref: '#/components/schemas/LoginWithCredentials'
+                - $ref: '#/components/schemas/LoginWithApiKey'
+            examples:
+              email_password:
+                summary: Login with email and password
+                value:
+                  email: root@mail.co
+                  password: 123456789*
+              api_key:
+                summary: Login with API key
+                value:
+                  api_key: a1b2c3d4e5f6...
       responses:
         '200':
           description: Login successful
@@ -81,6 +102,175 @@ paths:
                 success: true
                 data:
                   access: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid credentials or inactive account
+        '403':
+          description: IP not allowed (API key mode only)
+  /api/v1/api-keys/:
+    get:
+      tags:
+        - API Keys
+      summary: List API keys
+      description: |
+        Returns API keys accessible to the authenticated user.
+
+        - **Root:** Returns all API keys across all users (includes `user_id` and `user_email`).
+        - **Other roles:** Returns only the user's own API keys.
+
+        **Permissions:** Authenticated user.
+      responses:
+        '200':
+          description: API keys listed
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    name: Production Key
+                    prefix: a1b2c3d4
+                    allowed_ips:
+                      - 192.168.1.1
+                    is_active: true
+                    is_expired: false
+                    expires_at: null
+                    last_used_at: '2026-02-26T10:30:00Z'
+                    created_at: '2026-02-20T08:00:00Z'
+                meta:
+                  count: 1
+    post:
+      tags:
+        - API Keys
+      summary: Create API key
+      description: |
+        Creates a new API key for the authenticated user.
+
+        The plaintext key is returned **only once** in the response. Store it securely.
+
+        **Permissions:** Authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              example:
+                success: true
+                message: API key created. Store the key securely, it will not be shown again.
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  name: Production Key
+                  prefix: a1b2c3d4
+                  key: a1b2c3d4e5f6...full_hex_key...
+                  allowed_ips:
+                    - 192.168.1.1
+                  is_active: true
+                  expires_at: null
+                  created_at: '2026-02-26T10:30:00Z'
+  /api/v1/api-keys/{api_key_id}/:
+    get:
+      tags:
+        - API Keys
+      summary: Show API key
+      description: |
+        Returns details of a specific API key.
+
+        - **Root:** Can access any API key (response includes `user_id` and `user_email`).
+        - **Other roles:** Can only access their own API keys.
+
+        **Permissions:** Authenticated user (owner) or root.
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      responses:
+        '200':
+          description: API key details
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  name: Production Key
+                  prefix: a1b2c3d4
+                  allowed_ips:
+                    - 192.168.1.1
+                  is_active: true
+                  is_expired: false
+                  expires_at: null
+                  last_used_at: '2026-02-26T10:30:00Z'
+                  created_at: '2026-02-20T08:00:00Z'
+                  updated_at: '2026-02-25T12:00:00Z'
+        '404':
+          description: API key not found
+    patch:
+      tags:
+        - API Keys
+      summary: Update API key
+      description: |
+        Updates an API key. All fields are optional; only provided fields are updated.
+
+        - **Root:** Can update any API key.
+        - **Other roles:** Can only update their own API keys.
+
+        **Permissions:** Authenticated user (owner) or root.
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApiKeyRequest'
+      responses:
+        '200':
+          description: API key updated
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  name: Updated Key Name
+                  prefix: a1b2c3d4
+                  allowed_ips:
+                    - 10.0.0.1
+                    - 10.0.0.2
+                  is_active: true
+                  is_expired: false
+                  expires_at: null
+                  last_used_at: null
+                  created_at: '2026-02-20T08:00:00Z'
+                  updated_at: '2026-02-26T10:30:00Z'
+        '404':
+          description: API key not found
+    delete:
+      tags:
+        - API Keys
+      summary: Delete API key
+      description: |
+        Permanently deletes an API key.
+
+        - **Root:** Can delete any API key.
+        - **Other roles:** Can only delete their own API keys.
+
+        **Permissions:** Authenticated user (owner) or root.
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      responses:
+        '200':
+          description: API key deleted
+          content:
+            application/json:
+              example:
+                success: true
+                message: API key deleted.
+        '404':
+          description: API key not found
   /api/v1/events/keys/:
     get:
       tags:
@@ -233,6 +423,21 @@ paths:
             minimum: 1
             maximum: 100
             default: 50
+        - name: key
+          in: query
+          required: false
+          description: |
+            Filter events by type (event key). Accepts a single key or multiple
+            keys separated by commas (e.g. `post.order,get.order`).
+          schema:
+            type: string
+          examples:
+            single:
+              summary: Single key
+              value: post.order
+            multiple:
+              summary: Multiple keys
+              value: post.order,get.order
       responses:
         '200':
           description: Consumed events
@@ -362,6 +567,91 @@ paths:
                     ticket: 12345
                     status: filled
                     open_price: 1.105
+  /api/v1/accounts/{account_id}/media/upload/:
+    post:
+      tags:
+        - Media
+      summary: Upload file
+      description: |
+        Uploads a file associated with the account. Files are stored with a unique
+        name and expire after the configured expiration period (default 24 hours).
+
+        Returns metadata about the uploaded file, including the `file_name` to use
+        for downloading.
+
+        **Permissions:** `root` OR account owner with role `root` | `platform`
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload (max 1 GB)
+      responses:
+        '201':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MediaFile'
+  /api/v1/accounts/{account_id}/media/{file_name}/download/:
+    get:
+      tags:
+        - Media
+      summary: Download file
+      description: |
+        Downloads a file by its unique file name. Returns the file as an attachment
+        with the original file name.
+
+        Expired files return `410 Gone`.
+
+        **Permissions:** `root` OR account owner (any role)
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/FileName'
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
+        '410':
+          description: File has expired
+  /api/v1/accounts/{account_id}/media/{file_name}/:
+    delete:
+      tags:
+        - Media
+      summary: Delete file
+      description: |
+        Deletes a file by its unique file name. Removes both the database record
+        and the file from disk.
+
+        **Permissions:** `root` OR account owner with role `root` | `platform`
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/FileName'
+      responses:
+        '204':
+          description: File deleted
+        '404':
+          description: File not found
 components:
   securitySchemes:
     bearerAuth:
@@ -369,6 +659,13 @@ components:
       scheme: bearer
       bearerFormat: JWT
   parameters:
+    ApiKeyId:
+      name: api_key_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     AccountId:
       name: account_id
       in: path
@@ -384,8 +681,15 @@ components:
       schema:
         type: string
         pattern: ^[a-f0-9]{24}$
+    FileName:
+      name: file_name
+      in: path
+      required: true
+      description: Unique file name returned by the upload endpoint
+      schema:
+        type: string
   schemas:
-    LoginRequest:
+    LoginWithCredentials:
       type: object
       required:
         - email
@@ -403,6 +707,58 @@ components:
           minLength: 8
           maxLength: 128
           default: 123456789*
+    LoginWithApiKey:
+      type: object
+      required:
+        - api_key
+      properties:
+        api_key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Plaintext API key.
+    CreateApiKeyRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Human-readable label for the API key.
+        allowed_ips:
+          type: array
+          items:
+            type: string
+            format: ipv4
+          maxItems: 20
+          default: []
+          description: IP whitelist. Empty array allows all IPs.
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Optional expiration date. Null means no expiration.
+    UpdateApiKeyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        allowed_ips:
+          type: array
+          items:
+            type: string
+            format: ipv4
+          maxItems: 20
+        is_active:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
     EventKeyEnum:
       type: string
       enum:
@@ -488,3 +844,59 @@ components:
           type: object
           nullable: true
           description: Optional response data. Max 65536 bytes, max 5 nesting levels.
+    MediaFile:
+      type: object
+      properties:
+        id:
+          type: string
+        account_id:
+          type: string
+        user_id:
+          type: string
+        file_name:
+          type: string
+        original_name:
+          type: string
+        content_type:
+          type: string
+        size:
+          type: integer
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        prefix:
+          type: string
+          description: First 8 characters of the key for identification.
+        allowed_ips:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+        is_expired:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

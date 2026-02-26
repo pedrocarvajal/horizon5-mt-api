@@ -26,6 +26,7 @@ htmlcov/
 
 staticfiles/
 static/
+storage/
 
 *.pyc
 

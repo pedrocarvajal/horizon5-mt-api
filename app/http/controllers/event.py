@@ -82,8 +82,14 @@ class EventController(BaseController):
         now = timezone.now()
         consumed = []
 
+        query: dict[str, Any] = {"account_id": str(id), "status": EventStatus.PENDING}
+
+        if "key" in serializer.validated_data:
+            keys = serializer.validated_data["key"]
+            query["key"] = keys[0] if len(keys) == 1 else {"$in": keys}
+
         cursor = Event.where(
-            {"account_id": str(id), "status": EventStatus.PENDING},
+            query,
             sort=[("created_at", ASCENDING)],
         )
 

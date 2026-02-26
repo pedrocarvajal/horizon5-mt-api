@@ -47,7 +47,7 @@ class TestLogin:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
         assert response.data["message"] == "Validation failed."
-        assert "email" in response.data["data"]["errors"]
+        assert "non_field_errors" in response.data["data"]["errors"]
 
     def test_should_return_400_when_password_is_missing(self, api_client, login_url):
         response = api_client.post(login_url, {"email": "user@test.co"})
@@ -55,7 +55,7 @@ class TestLogin:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
         assert response.data["message"] == "Validation failed."
-        assert "password" in response.data["data"]["errors"]
+        assert "non_field_errors" in response.data["data"]["errors"]
 
     def test_should_return_400_when_email_format_is_invalid(self, api_client, login_url):
         response = api_client.post(login_url, {"email": "not-an-email", "password": TEST_PASSWORD})

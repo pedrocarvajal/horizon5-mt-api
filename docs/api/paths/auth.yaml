@@ -5,9 +5,14 @@ login:
     description: |
       Authenticates a user and returns a JWT access token.
 
+      Supports two authentication modes (mutually exclusive):
+      - **Email/Password:** Provide `email` and `password` fields.
+      - **API Key:** Provide `api_key` field. The key is validated against stored hashes,
+        IP whitelist is checked, and expiration/active status is verified.
+
       **Permissions:** Public (no authentication required).
 
-      **Rate limiting:**
+      **Rate limiting (email/password mode):**
       - Per IP: 5 requests / 60 seconds
       - Per email: 10 requests / 3600 seconds
       - Account lockout: 10 consecutive failures locks the account for 900 seconds
@@ -17,7 +22,19 @@ login:
       content:
         application/json:
           schema:
-            $ref: "../components/schemas.yaml#/LoginRequest"
+            oneOf:
+              - $ref: "../components/schemas.yaml#/LoginWithCredentials"
+              - $ref: "../components/schemas.yaml#/LoginWithApiKey"
+          examples:
+            email_password:
+              summary: Login with email and password
+              value:
+                email: "root@mail.co"
+                password: "123456789*"
+            api_key:
+              summary: Login with API key
+              value:
+                api_key: "a1b2c3d4e5f6..."
     responses:
       "200":
         description: Login successful
@@ -27,3 +44,7 @@ login:
               success: true
               data:
                 access: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      "401":
+        description: Invalid credentials or inactive account
+      "403":
+        description: IP not allowed (API key mode only)

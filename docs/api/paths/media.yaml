@@ -1,0 +1,83 @@
+upload:
+  post:
+    tags: [Media]
+    summary: Upload file
+    description: |
+      Uploads a file associated with the account. Files are stored with a unique
+      name and expire after the configured expiration period (default 24 hours).
+
+      Returns metadata about the uploaded file, including the `file_name` to use
+      for downloading.
+
+      **Permissions:** `root` OR account owner with role `root` | `platform`
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [file]
+            properties:
+              file:
+                type: string
+                format: binary
+                description: File to upload (max 1 GB)
+    responses:
+      "201":
+        description: File uploaded
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "../components/schemas.yaml#/SuccessEnvelope"
+                - type: object
+                  properties:
+                    data:
+                      $ref: "../components/schemas.yaml#/MediaFile"
+
+download:
+  get:
+    tags: [Media]
+    summary: Download file
+    description: |
+      Downloads a file by its unique file name. Returns the file as an attachment
+      with the original file name.
+
+      Expired files return `410 Gone`.
+
+      **Permissions:** `root` OR account owner (any role)
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+      - $ref: "../components/parameters.yaml#/FileName"
+    responses:
+      "200":
+        description: File content
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      "404":
+        description: File not found
+      "410":
+        description: File has expired
+
+destroy:
+  delete:
+    tags: [Media]
+    summary: Delete file
+    description: |
+      Deletes a file by its unique file name. Removes both the database record
+      and the file from disk.
+
+      **Permissions:** `root` OR account owner with role `root` | `platform`
+    parameters:
+      - $ref: "../components/parameters.yaml#/AccountId"
+      - $ref: "../components/parameters.yaml#/FileName"
+    responses:
+      "204":
+        description: File deleted
+      "404":
+        description: File not found

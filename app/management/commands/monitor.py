@@ -1,12 +1,14 @@
 import structlog
 from django.core.management.base import BaseCommand
 
+from app.monitors.expired_media import ExpiredMediaCleanup
 from app.monitors.stuck_events import StuckEventsCheck
 
 logger = structlog.get_logger("monitor")
 
 CHECKS = [
     StuckEventsCheck,
+    ExpiredMediaCleanup,
 ]
 
 

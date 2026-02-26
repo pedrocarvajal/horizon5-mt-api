@@ -17,14 +17,22 @@ tags:
     description: System health checks
   - name: Auth
     description: Authentication
+  - name: API Keys
+    description: API key management. Root users see all keys; regular users see only their own.
   - name: Events
     description: Event management (keys, push, consume, ack, history, response)
+  - name: Media
+    description: File upload and download management
 
 paths:
   /health/:
     $ref: "paths/health.yaml#/health"
   /api/v1/auth/login/:
     $ref: "paths/auth.yaml#/login"
+  /api/v1/api-keys/:
+    $ref: "paths/api_keys.yaml#/user_api_keys"
+  /api/v1/api-keys/{api_key_id}/:
+    $ref: "paths/api_keys.yaml#/user_api_key_detail"
   /api/v1/events/keys/:
     $ref: "paths/events.yaml#/keys"
   /api/v1/accounts/{account_id}/events:
@@ -37,6 +45,12 @@ paths:
     $ref: "paths/events.yaml#/ack"
   /api/v1/accounts/{account_id}/events/{event_id}/response/:
     $ref: "paths/events.yaml#/response"
+  /api/v1/accounts/{account_id}/media/upload/:
+    $ref: "paths/media.yaml#/upload"
+  /api/v1/accounts/{account_id}/media/{file_name}/download/:
+    $ref: "paths/media.yaml#/download"
+  /api/v1/accounts/{account_id}/media/{file_name}/:
+    $ref: "paths/media.yaml#/destroy"
 
 components:
   securitySchemes:

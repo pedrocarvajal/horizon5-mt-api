@@ -127,7 +127,9 @@ class Route:
         return IncludeDefinition(module)
 
     @staticmethod
-    def collect(*items: RouteDefinition | IncludeDefinition | list) -> list[URLPattern | URLResolver]:
+    def collect(
+        *items: RouteDefinition | IncludeDefinition | URLPattern | URLResolver | list,
+    ) -> list[URLPattern | URLResolver]:
         collected = []
 
         for item in items:

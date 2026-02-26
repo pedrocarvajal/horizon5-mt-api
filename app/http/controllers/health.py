@@ -1,6 +1,5 @@
 from typing import ClassVar
 
-import structlog
 from django.db import connection
 from rest_framework import status
 from rest_framework.decorators import action
@@ -10,8 +9,6 @@ from rest_framework.response import Response
 from app.database.mongodb import get_client
 from app.http.controllers.base import BaseController
 from app.http.permissions.role import IsRootOrPlatform
-
-logger = structlog.get_logger("health")
 
 
 class HealthController(BaseController):
@@ -37,8 +34,7 @@ class HealthController(BaseController):
         try:
             connection.ensure_connection()
             return "ok"
-        except Exception as exc:
-            logger.error("health_check_postgres_failed", error=str(exc))
+        except Exception:
             return "error"
 
     def _check_mongodb(self) -> str:
@@ -46,6 +42,5 @@ class HealthController(BaseController):
             client = get_client()
             client.admin.command("ping")
             return "ok"
-        except Exception as exc:
-            logger.error("health_check_mongodb_failed", error=str(exc))
+        except Exception:
             return "error"

@@ -1,0 +1,156 @@
+user_api_keys:
+  get:
+    tags: [API Keys]
+    summary: List API keys
+    description: |
+      Returns API keys accessible to the authenticated user.
+
+      - **Root:** Returns all API keys across all users (includes `user_id` and `user_email`).
+      - **Other roles:** Returns only the user's own API keys.
+
+      **Permissions:** Authenticated user.
+    responses:
+      "200":
+        description: API keys listed
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                - id: "550e8400-e29b-41d4-a716-446655440000"
+                  name: "Production Key"
+                  prefix: "a1b2c3d4"
+                  allowed_ips: ["192.168.1.1"]
+                  is_active: true
+                  is_expired: false
+                  expires_at: null
+                  last_used_at: "2026-02-26T10:30:00Z"
+                  created_at: "2026-02-20T08:00:00Z"
+              meta:
+                count: 1
+  post:
+    tags: [API Keys]
+    summary: Create API key
+    description: |
+      Creates a new API key for the authenticated user.
+
+      The plaintext key is returned **only once** in the response. Store it securely.
+
+      **Permissions:** Authenticated user.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/CreateApiKeyRequest"
+    responses:
+      "201":
+        description: API key created
+        content:
+          application/json:
+            example:
+              success: true
+              message: "API key created. Store the key securely, it will not be shown again."
+              data:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                name: "Production Key"
+                prefix: "a1b2c3d4"
+                key: "a1b2c3d4e5f6...full_hex_key..."
+                allowed_ips: ["192.168.1.1"]
+                is_active: true
+                expires_at: null
+                created_at: "2026-02-26T10:30:00Z"
+
+user_api_key_detail:
+  get:
+    tags: [API Keys]
+    summary: Show API key
+    description: |
+      Returns details of a specific API key.
+
+      - **Root:** Can access any API key (response includes `user_id` and `user_email`).
+      - **Other roles:** Can only access their own API keys.
+
+      **Permissions:** Authenticated user (owner) or root.
+    parameters:
+      - $ref: "../components/parameters.yaml#/ApiKeyId"
+    responses:
+      "200":
+        description: API key details
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                name: "Production Key"
+                prefix: "a1b2c3d4"
+                allowed_ips: ["192.168.1.1"]
+                is_active: true
+                is_expired: false
+                expires_at: null
+                last_used_at: "2026-02-26T10:30:00Z"
+                created_at: "2026-02-20T08:00:00Z"
+                updated_at: "2026-02-25T12:00:00Z"
+      "404":
+        description: API key not found
+  patch:
+    tags: [API Keys]
+    summary: Update API key
+    description: |
+      Updates an API key. All fields are optional; only provided fields are updated.
+
+      - **Root:** Can update any API key.
+      - **Other roles:** Can only update their own API keys.
+
+      **Permissions:** Authenticated user (owner) or root.
+    parameters:
+      - $ref: "../components/parameters.yaml#/ApiKeyId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/UpdateApiKeyRequest"
+    responses:
+      "200":
+        description: API key updated
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                name: "Updated Key Name"
+                prefix: "a1b2c3d4"
+                allowed_ips: ["10.0.0.1", "10.0.0.2"]
+                is_active: true
+                is_expired: false
+                expires_at: null
+                last_used_at: null
+                created_at: "2026-02-20T08:00:00Z"
+                updated_at: "2026-02-26T10:30:00Z"
+      "404":
+        description: API key not found
+  delete:
+    tags: [API Keys]
+    summary: Delete API key
+    description: |
+      Permanently deletes an API key.
+
+      - **Root:** Can delete any API key.
+      - **Other roles:** Can only delete their own API keys.
+
+      **Permissions:** Authenticated user (owner) or root.
+    parameters:
+      - $ref: "../components/parameters.yaml#/ApiKeyId"
+    responses:
+      "200":
+        description: API key deleted
+        content:
+          application/json:
+            example:
+              success: true
+              message: "API key deleted."
+      "404":
+        description: API key not found

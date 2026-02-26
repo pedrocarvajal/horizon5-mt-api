@@ -10,7 +10,7 @@ env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
-ALLOWED_HOSTS: list[str] = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])  # type: ignore[arg-type]
+ALLOWED_HOSTS: list[str] = env.list("DJANGO_ALLOWED_HOSTS", default=[])  # type: ignore[arg-type]
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -75,6 +75,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGE_ROOT = BASE_DIR / "storage"
+STORAGE_FILE_EXPIRATION_HOURS = env.int("STORAGE_FILE_EXPIRATION_HOURS", default=24)
+STORAGE_MAX_UPLOAD_SIZE = env.int("STORAGE_MAX_UPLOAD_SIZE", default=1_073_741_824)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

@@ -11,7 +11,7 @@ SuccessEnvelope:
     meta:
       type: object
 
-LoginRequest:
+LoginWithCredentials:
   type: object
   required: [email, password]
   properties:
@@ -27,6 +27,93 @@ LoginRequest:
       minLength: 8
       maxLength: 128
       default: "123456789*"
+
+LoginWithApiKey:
+  type: object
+  required: [api_key]
+  properties:
+    api_key:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Plaintext API key.
+
+CreateApiKeyRequest:
+  type: object
+  required: [name]
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Human-readable label for the API key.
+    allowed_ips:
+      type: array
+      items:
+        type: string
+        format: ipv4
+      maxItems: 20
+      default: []
+      description: IP whitelist. Empty array allows all IPs.
+    expires_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Optional expiration date. Null means no expiration.
+
+UpdateApiKeyRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 100
+    allowed_ips:
+      type: array
+      items:
+        type: string
+        format: ipv4
+      maxItems: 20
+    is_active:
+      type: boolean
+    expires_at:
+      type: string
+      format: date-time
+      nullable: true
+
+ApiKey:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    prefix:
+      type: string
+      description: First 8 characters of the key for identification.
+    allowed_ips:
+      type: array
+      items:
+        type: string
+    is_active:
+      type: boolean
+    is_expired:
+      type: boolean
+    expires_at:
+      type: string
+      format: date-time
+      nullable: true
+    last_used_at:
+      type: string
+      format: date-time
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
 
 PushEventRequest:
   type: object
@@ -98,3 +185,27 @@ EventKeyEnum:
 EventStatus:
   type: string
   enum: [pending, delivered, processed, failed]
+
+MediaFile:
+  type: object
+  properties:
+    id:
+      type: string
+    account_id:
+      type: string
+    user_id:
+      type: string
+    file_name:
+      type: string
+    original_name:
+      type: string
+    content_type:
+      type: string
+    size:
+      type: integer
+    expires_at:
+      type: string
+      format: date-time
+    created_at:
+      type: string
+      format: date-time
