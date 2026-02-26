@@ -28,3 +28,12 @@ class IsRootOrPlatform(BaseAppPermission):
         user = cast("User", request.user)
 
         return user.role in (SystemRole.ROOT, SystemRole.PLATFORM)
+
+
+class IsProducerOrRoot(BaseAppPermission):
+    """Checks SystemRole: user.role in (root, producer)"""
+
+    def has_authenticated_permission(self, request: Request, _view: APIView) -> bool:
+        user = cast("User", request.user)
+
+        return user.role in (SystemRole.ROOT, SystemRole.PRODUCER)

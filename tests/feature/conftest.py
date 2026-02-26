@@ -3,6 +3,7 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from app.enums import SystemRole
+from app.models import Account
 from app.models.user import User
 
 TEST_PASSWORD = "securepassword123"  # noqa: S105
@@ -55,3 +56,42 @@ def active_user(db):  # noqa: ARG001
 @pytest.fixture()
 def inactive_user(db):  # noqa: ARG001
     return create_user(email="inactive@test.co", is_active=False)
+
+
+@pytest.fixture()
+def producer_user(db):  # noqa: ARG001
+    return create_user(email="producer@test.co", role=SystemRole.PRODUCER)
+
+
+@pytest.fixture()
+def producer_client(producer_user):
+    client = APIClient()
+    client.force_authenticate(user=producer_user)
+    return client
+
+
+@pytest.fixture()
+def platform_user(db):  # noqa: ARG001
+    return create_user(email="platform@test.co", role=SystemRole.PLATFORM)
+
+
+@pytest.fixture()
+def platform_client(platform_user):
+    client = APIClient()
+    client.force_authenticate(user=platform_user)
+    return client
+
+
+@pytest.fixture()
+def producer_account(producer_user):
+    return Account.objects.create(id=123456, user=producer_user)
+
+
+@pytest.fixture()
+def platform_account(platform_user):
+    return Account.objects.create(id=789012, user=platform_user)
+
+
+@pytest.fixture()
+def root_account(root_user):
+    return Account.objects.create(id=999999, user=root_user)

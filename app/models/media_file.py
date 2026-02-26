@@ -8,7 +8,7 @@ from app.models.base import BaseModel
 class MediaFile(BaseModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     account = models.ForeignKey("app.Account", on_delete=models.CASCADE, related_name="media_files")
-    account_id: uuid.UUID
+    account_id: int
     user = models.ForeignKey("app.User", on_delete=models.CASCADE, related_name="media_files")
     user_id: uuid.UUID
     file_name = models.CharField(max_length=255, unique=True, db_index=True)

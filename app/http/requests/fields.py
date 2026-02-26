@@ -6,8 +6,6 @@ from rest_framework import serializers
 
 class ObjectIdField(serializers.CharField):
     def __init__(self, **kwargs):
-        kwargs.setdefault("min_length", 24)
-        kwargs.setdefault("max_length", 24)
         super().__init__(**kwargs)
         self.validators.append(
             RegexValidator(

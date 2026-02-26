@@ -14,13 +14,13 @@ SEED_DATA = [
         "email": "platform@mail.co",
         "password": "123456789*",
         "role": SystemRole.PLATFORM,
-        "accounts": ["200000001"],
+        "accounts": [200000001],
     },
     {
         "email": "producer@mail.co",
         "password": "123456789*",
         "role": SystemRole.PRODUCER,
-        "accounts": ["200000001"],
+        "accounts": [200000001],
     },
 ]
 
@@ -44,15 +44,15 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"User already exists: {user.email}")
 
-            for account_number in entry.get("accounts", []):
+            for account_id in entry.get("accounts", []):
                 _account, account_created = Account.objects.get_or_create(
-                    account_number=account_number,
+                    id=account_id,
                     defaults={"user": user},
                 )
 
                 if account_created:
-                    self.stdout.write(self.style.SUCCESS(f"  Created account: {account_number}"))
+                    self.stdout.write(self.style.SUCCESS(f"  Created account: {account_id}"))
                 else:
-                    self.stdout.write(f"  Account already exists: {account_number}")
+                    self.stdout.write(f"  Account already exists: {account_id}")
 
         self.stdout.write(self.style.SUCCESS("Seed completed"))

@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 class MediaFileResource(serializers.Serializer):
     id = serializers.UUIDField()
-    account_id = serializers.UUIDField()
+    account_id = serializers.IntegerField()
     user_id = serializers.UUIDField()
     file_name = serializers.CharField()
     original_name = serializers.CharField()

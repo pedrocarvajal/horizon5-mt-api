@@ -2,7 +2,6 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import ClassVar, cast
-from uuid import UUID
 
 from django.conf import settings
 from django.http import FileResponse
@@ -31,7 +30,7 @@ class MediaController(BaseController):
     }
 
     @action(detail=False, methods=["post"], url_path="upload")
-    def upload(self, request: Request, id: UUID) -> Response:
+    def upload(self, request: Request, id: int) -> Response:
         self._validate_account(id)
         serializer = UploadMediaRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -41,7 +40,7 @@ class MediaController(BaseController):
         file_extension = Path(uploaded_file.name).suffix
         file_name = f"{uuid.uuid4()}{file_extension}"
 
-        self._store_file(uploaded_file, cast(UUID, request.user.pk), now, file_name)
+        self._store_file(uploaded_file, cast(uuid.UUID, request.user.pk), now, file_name)
 
         media_file = MediaFile.objects.create(
             account_id=id,
@@ -59,7 +58,7 @@ class MediaController(BaseController):
         )
 
     @action(detail=True, methods=["get"], url_path="download")
-    def download(self, _request: Request, id: UUID, file_name: str) -> Response | FileResponse:
+    def download(self, _request: Request, id: int, file_name: str) -> Response | FileResponse:
         self._validate_account(id)
         media_file = self._get_media_file(id, file_name)
 
@@ -77,7 +76,14 @@ class MediaController(BaseController):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        safe_content_types = {"image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"}
+        safe_content_types = {
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "application/pdf",
+        }
+
         safe_content_type = (
             media_file.content_type if media_file.content_type in safe_content_types else "application/octet-stream"
         )
@@ -88,11 +94,13 @@ class MediaController(BaseController):
             as_attachment=True,
             filename=media_file.original_name,
         )
+
         response["X-Content-Type-Options"] = "nosniff"
+
         return response
 
     @action(detail=True, methods=["delete"], url_path="")
-    def destroy(self, _request: Request, id: UUID, file_name: str) -> Response:
+    def destroy(self, _request: Request, id: int, file_name: str) -> Response:
         self._validate_account(id)
         media_file = self._get_media_file(id, file_name)
         file_path = self._build_file_path(media_file.user_id, media_file.created_at, file_name)
@@ -108,20 +116,22 @@ class MediaController(BaseController):
 
         return self.reply(status_code=status.HTTP_204_NO_CONTENT)
 
-    def _validate_account(self, account_id: UUID) -> None:
+    def _validate_account(self, account_id: int) -> None:
         if not Account.objects.filter(id=account_id).exists():
             raise serializers.ValidationError({"detail": "Account not found."})
 
-    def _get_media_file(self, account_id: UUID, file_name: str) -> MediaFile:
+    def _get_media_file(self, account_id: int, file_name: str) -> MediaFile:
         media_file = MediaFile.objects.filter(account_id=account_id, file_name=file_name).first()
+
         if media_file is None:
             raise NotFound("File not found.")
+
         return media_file
 
-    def _build_file_path(self, user_id: UUID, created_at: datetime, file_name: str) -> Path:
+    def _build_file_path(self, user_id: uuid.UUID, created_at: datetime, file_name: str) -> Path:
         return Path(settings.STORAGE_ROOT) / str(user_id) / "files" / created_at.strftime("%Y-%m-%d") / file_name
 
-    def _store_file(self, uploaded_file, user_id: UUID, created_at: datetime, file_name: str) -> None:
+    def _store_file(self, uploaded_file, user_id: uuid.UUID, created_at: datetime, file_name: str) -> None:
         file_path = self._build_file_path(user_id, created_at, file_name)
         file_path.parent.mkdir(parents=True, exist_ok=True)
 

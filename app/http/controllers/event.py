@@ -1,5 +1,4 @@
 from typing import Any, ClassVar
-from uuid import UUID
 
 from django.utils import timezone
 from pymongo import ASCENDING, DESCENDING
@@ -46,14 +45,14 @@ class EventController(BaseController):
         return self.reply(data=data)
 
     @action(detail=False, methods=["post"], url_path="")
-    def push(self, request: Request, id: UUID) -> Response:
+    def push(self, request: Request, id: int) -> Response:
         self._validate_account(id)
         serializer = PushEventRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         event = Event.create(
             {
-                "account_id": str(id),
+                "account_id": id,
                 "user_id": str(request.user.pk),
                 "consumer_id": None,
                 "key": str(serializer.validated_data["key"]),
@@ -72,7 +71,7 @@ class EventController(BaseController):
         )
 
     @action(detail=False, methods=["post"], url_path="consume")
-    def consume(self, request: Request, id: UUID) -> Response:
+    def consume(self, request: Request, id: int) -> Response:
         self._validate_account(id)
         serializer = ConsumeEventRequestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
@@ -80,9 +79,9 @@ class EventController(BaseController):
         limit = serializer.validated_data["limit"]
         consumer_id = str(request.user.pk)
         now = timezone.now()
-        consumed = []
+        consumed: list[dict] = []
 
-        query: dict[str, Any] = {"account_id": str(id), "status": EventStatus.PENDING}
+        query: dict[str, Any] = {"account_id": id, "status": EventStatus.PENDING}
 
         if "key" in serializer.validated_data:
             keys = serializer.validated_data["key"]
@@ -120,7 +119,7 @@ class EventController(BaseController):
         )
 
     @action(detail=True, methods=["patch"], url_path="ack")
-    def ack(self, request: Request, id: UUID, event_id: str) -> Response:
+    def ack(self, request: Request, id: int, event_id: str) -> Response:
         serializer = AckEventRequestSerializer(data={**request.data, "event_id": event_id})
         serializer.is_valid(raise_exception=True)
 
@@ -140,7 +139,7 @@ class EventController(BaseController):
         event = Event.find_one_and_update(
             {
                 "_id": event_id,
-                "account_id": str(id),
+                "account_id": id,
                 "status": EventStatus.DELIVERED,
             },
             {"$set": update_fields},
@@ -158,13 +157,13 @@ class EventController(BaseController):
         )
 
     @action(detail=False, methods=["get"], url_path="history")
-    def history(self, request: Request, id: UUID) -> Response:
+    def history(self, request: Request, id: int) -> Response:
         self._validate_account(id)
         serializer = HistoryEventRequestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
         limit = serializer.validated_data["limit"]
-        query: dict[str, Any] = {"account_id": str(id)}
+        query: dict[str, Any] = {"account_id": id}
 
         if "status" in serializer.validated_data:
             query["status"] = serializer.validated_data["status"]
@@ -179,7 +178,7 @@ class EventController(BaseController):
         )
 
     @action(detail=True, methods=["get"], url_path="response")
-    def response(self, _request: Request, id: UUID, event_id: str) -> Response:
+    def response(self, _request: Request, id: int, event_id: str) -> Response:
         self._validate_account(id)
         serializer = EventResponseRequestSerializer(data={"event_id": event_id})
         serializer.is_valid(raise_exception=True)
@@ -189,7 +188,7 @@ class EventController(BaseController):
         event = Event.find_one(
             {
                 "_id": event_id,
-                "account_id": str(id),
+                "account_id": id,
             }
         )
 
@@ -209,6 +208,6 @@ class EventController(BaseController):
             data={"response": event["response"]},
         )
 
-    def _validate_account(self, account_id: UUID) -> None:
+    def _validate_account(self, account_id: int) -> None:
         if not Account.objects.filter(id=account_id).exists():
             raise serializers.ValidationError({"detail": "Account not found."})
