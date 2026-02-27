@@ -1,4 +1,3 @@
-import uuid
 from datetime import timedelta
 
 import pytest
@@ -90,7 +89,7 @@ class TestDownloadMedia:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_should_return_400_when_account_does_not_exist(self, root_client):
-        response = root_client.get(download_url(uuid.uuid4(), "test.png"))
+        response = root_client.get(download_url(999999999, "test.png"))
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -113,7 +112,7 @@ class TestDownloadMedia:
     def test_should_allow_account_owner_with_producer_role_to_download(self, settings, tmp_path):
         settings.STORAGE_ROOT = str(tmp_path)
         producer = create_user(email="producer@test.co", role=SystemRole.PRODUCER)
-        producer_account = Account.objects.create(user=producer)
+        producer_account = Account.objects.create(id=222333, user=producer)
         media_file = create_media_file(producer_account, producer, str(tmp_path))
         client = APIClient()
         client.force_authenticate(user=producer)

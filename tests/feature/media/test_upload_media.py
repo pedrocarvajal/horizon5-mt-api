@@ -103,7 +103,7 @@ class TestUploadMedia:
     def test_should_return_400_when_account_does_not_exist(self, root_client):
         file = create_valid_file()
 
-        response = root_client.post(upload_url(uuid.uuid4()), {"file": file}, format="multipart")
+        response = root_client.post(upload_url(999999999), {"file": file}, format="multipart")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -120,7 +120,7 @@ class TestUploadMedia:
 
     def test_should_return_403_when_account_owner_has_producer_role(self):
         producer = create_user(email="producer@test.co", role=SystemRole.PRODUCER)
-        producer_account = Account.objects.create(user=producer)
+        producer_account = Account.objects.create(id=222333, user=producer)
         client = APIClient()
         client.force_authenticate(user=producer)
 
