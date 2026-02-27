@@ -86,7 +86,15 @@ horizon5-mt-api/
 |   |   |-- __init__.py
 |   |   |-- commands/
 |   |       |-- __init__.py
-|   |       |-- monitor.py              # Main monitor command (runs all checks)
+|   |       |-- check_stuck_events.py   # Check for stuck delivered events
+|   |       |-- clean_expired_media.py  # Clean up expired media files
+|   |       |-- get_producer_credentials.py  # Get producer credentials
+|   |       |-- purge_account_snapshots.py   # Purge old account snapshots
+|   |       |-- purge_events.py         # Purge terminal events
+|   |       |-- purge_heartbeats.py     # Purge old heartbeats
+|   |       |-- purge_logs.py           # Purge old logs
+|   |       |-- purge_strategy_snapshots.py  # Purge old strategy snapshots
+|   |       |-- seed_database.py        # Seed database with initial data
 |   |-- monitors/                        # Individual monitor checks
 |   |   |-- __init__.py
 |   |   |-- stuck_events.py
@@ -100,7 +108,7 @@ horizon5-mt-api/
 |   |   |-- run-docker-build.sh          # docker compose build
 |   |   |-- run-docker-down.sh           # docker compose down
 |   |   |-- run-db-migrate.sh            # Run Django migrations
-|   |   |-- run-db-seed.sh               # Create superuser / seed data
+|   |   |-- run-db-seed-database.sh      # Create superuser / seed data
 |   |   |-- run-tests.sh                 # Run test suite
 |   |   |-- run-linter-checks.sh         # ruff format --check + ruff check + pyright
 |   |   |-- run-linter-fixes.sh          # ruff format + ruff check --fix
@@ -198,18 +206,18 @@ consistent colored output and log-to-file support.
 
 ### 3.1 Makefile Targets
 
-| Target              | Script                 | Description                                  |
-| ------------------- | ---------------------- | -------------------------------------------- |
-| `run-dev`           | `run-dev.sh`           | Build + up + migrate + runserver (local dev) |
-| `run-docker-up`     | `run-docker-up.sh`     | `docker compose up -d`                       |
-| `run-docker-build`  | `run-docker-build.sh`  | `docker compose build`                       |
-| `run-docker-down`   | `run-docker-down.sh`   | `docker compose down --remove-orphans`       |
-| `run-db-migrate`    | `run-db-migrate.sh`    | `python manage.py migrate` inside container  |
-| `run-db-seed`       | `run-db-seed.sh`       | Create superuser / seed initial data         |
-| `run-tests`         | `run-tests.sh`         | Run pytest inside container                  |
-| `run-linter-checks` | `run-linter-checks.sh` | ruff format --check + ruff check + pyright   |
-| `run-linter-fixes`  | `run-linter-fixes.sh`  | ruff format + ruff check --fix               |
-| `run-hooks-install` | `run-hooks-install.sh` | Set git hooks path to `.githooks/`           |
+| Target                 | Script                    | Description                                  |
+| ---------------------- | ------------------------- | -------------------------------------------- |
+| `run-dev`              | `run-dev.sh`              | Build + up + migrate + runserver (local dev) |
+| `run-docker-up`        | `run-docker-up.sh`        | `docker compose up -d`                       |
+| `run-docker-build`     | `run-docker-build.sh`     | `docker compose build`                       |
+| `run-docker-down`      | `run-docker-down.sh`      | `docker compose down --remove-orphans`       |
+| `run-db-migrate`       | `run-db-migrate.sh`       | `python manage.py migrate` inside container  |
+| `run-db-seed-database` | `run-db-seed-database.sh` | Create superuser / seed initial data         |
+| `run-tests`            | `run-tests.sh`            | Run pytest inside container                  |
+| `run-linter-checks`    | `run-linter-checks.sh`    | ruff format --check + ruff check + pyright   |
+| `run-linter-fixes`     | `run-linter-fixes.sh`     | ruff format + ruff check --fix               |
+| `run-hooks-install`    | `run-hooks-install.sh`    | Set git hooks path to `.githooks/`           |
 
 ### 3.2 Script Pattern
 
@@ -640,10 +648,10 @@ Allowed headers: `Authorization`, `Content-Type`
 
 ---
 
-## 9. Monitor (Cron Service)
+## 9. Scheduled Commands (Cron Service)
 
-Scheduled background process that runs periodic health checks on the system.
-Implemented as Django management commands executed by a cron-like scheduler inside Docker.
+Scheduled background processes for monitoring and data retention.
+Implemented as standalone Django management commands executed by supercronic inside Docker.
 
 ### 9.1 Architecture
 
@@ -652,7 +660,7 @@ docker-compose.yml
   |
   |-- cron service (same Django image)
        |-- runs on schedule via supercronic (lightweight cron for containers)
-       |-- executes: python manage.py monitor
+       |-- executes individual management commands on schedule
 ```
 
 **Why supercronic**: Standard cron has issues in containers (requires root, no stdout logging,
@@ -672,26 +680,43 @@ PID 1 problems). `supercronic` is a single binary, runs as non-root, logs to std
 ### 9.3 Crontab File (`crontab`)
 
 ```
-# Run monitor daily at 03:00 UTC
-0 3 * * * python manage.py monitor
+# Monitoring - daily at 03:00 UTC (staggered)
+0 3 * * * python manage.py check_stuck_events
+5 3 * * * python manage.py clean_expired_media
+
+# Purge jobs - weekly on Sunday at 04:00 UTC (staggered)
+0 4 * * 0 python manage.py purge_logs
+5 4 * * 0 python manage.py purge_heartbeats
+10 4 * * 0 python manage.py purge_events
+15 4 * * 0 python manage.py purge_account_snapshots
+20 4 * * 0 python manage.py purge_strategy_snapshots
 ```
 
 Lives in project root, copied into Docker image.
 
-### 9.4 Management Command (`app/management/commands/monitor.py`)
+### 9.4 Management Commands
 
-Extensible command that runs a series of checks:
+**Monitoring commands** (wrap checks from `app/monitors/`):
 
-| Check             | Description                                                | Severity |
-| ----------------- | ---------------------------------------------------------- | -------- |
-| `stuck_events`    | Events in `delivered` status for more than 24h without ack | Warning  |
-| `failed_events`   | Count of `failed` events in last 24h                       | Warning  |
-| `pending_backlog` | Events in `pending` status older than 1h                   | Warning  |
+| Command               | Description                                                | Schedule |
+| --------------------- | ---------------------------------------------------------- | -------- |
+| `check_stuck_events`  | Events in `delivered` status for more than 24h without ack | Daily    |
+| `clean_expired_media` | Clean up expired media files from storage and database     | Daily    |
 
-Each check logs its result. Warnings are logged with `log.warning()` so they are
-visible in Docker logs and can be captured by external monitoring (future).
+**Purge commands** (data retention via `BaseDocument.delete_where()`):
 
-### 9.5 Project Structure Additions
+| Command                    | Collection         | Retention | Schedule       |
+| -------------------------- | ------------------ | --------- | -------------- |
+| `purge_logs`               | logs               | 90 days   | Weekly, Sunday |
+| `purge_heartbeats`         | heartbeats         | 30 days   | Weekly, Sunday |
+| `purge_events`             | events (terminal)  | 90 days   | Weekly, Sunday |
+| `purge_account_snapshots`  | account_snapshots  | 180 days  | Weekly, Sunday |
+| `purge_strategy_snapshots` | strategy_snapshots | 180 days  | Weekly, Sunday |
+
+Each command logs its result via `structlog`. Warnings are visible in Docker logs
+and can be captured by external monitoring (future).
+
+### 9.5 Project Structure
 
 ```
 app/
@@ -699,18 +724,24 @@ app/
 |   |-- __init__.py
 |   |-- commands/
 |       |-- __init__.py
-|       |-- monitor.py              # Main monitor command
+|       |-- check_stuck_events.py       # Standalone: stuck events check
+|       |-- clean_expired_media.py      # Standalone: expired media cleanup
+|       |-- purge_logs.py               # Data retention: logs
+|       |-- purge_heartbeats.py         # Data retention: heartbeats
+|       |-- purge_events.py             # Data retention: terminal events
+|       |-- purge_account_snapshots.py  # Data retention: account snapshots
+|       |-- purge_strategy_snapshots.py # Data retention: strategy snapshots
+|       |-- seed_database.py            # Seed initial users and accounts
+|       |-- get_producer_credentials.py # Get producer credentials
 |-- monitors/
 |   |-- __init__.py
 |   |-- stuck_events.py             # Check for stuck delivered events
-|   |-- failed_events.py            # Check for failed event count
-|   |-- pending_backlog.py          # Check for old pending events
+|   |-- expired_media.py            # Check/clean expired media files
 crontab                              # Crontab file for supercronic
 ```
 
-The `monitor.py` command discovers and runs all checks in `app/monitors/`.
-Each monitor is a simple class with a `run()` method that returns a result.
-Adding a new monitor = adding a new file in `app/monitors/`.
+Each monitor is a simple class with a `run()` method that returns a result dict.
+Management commands wrap these monitors as standalone entry points.
 
 ---
 

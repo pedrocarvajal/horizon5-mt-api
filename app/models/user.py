@@ -28,7 +28,7 @@ class User(AbstractBaseUser, BaseModel):
 
     USERNAME_FIELD = "email"
 
-    objects = UserManager()
+    objects: "UserManager" = UserManager()
 
     class Meta:
         db_table = "users"

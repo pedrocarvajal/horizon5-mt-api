@@ -1,4 +1,4 @@
-.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-db-migrate run-db-seed run-tests run-linter-checks run-linter-fixes run-hooks-install run-docs-bundle
+.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-db-migrate run-db-seed-database run-tests run-linter-checks run-linter-fixes run-hooks-install run-docs-bundle run-get-producer-credentials
 
 run-dev:
 	@bash scripts/make/run-dev.sh
@@ -18,8 +18,8 @@ run-docker-down:
 run-db-migrate:
 	@bash scripts/make/run-db-migrate.sh
 
-run-db-seed:
-	@bash scripts/make/run-db-seed.sh
+run-db-seed-database:
+	@bash scripts/make/run-db-seed-database.sh
 
 run-tests:
 	@bash scripts/make/run-tests.sh
@@ -35,3 +35,6 @@ run-hooks-install:
 
 run-docs-bundle:
 	@bash scripts/make/run-docs-bundle.sh
+
+run-get-producer-credentials:
+	@bash scripts/make/run-get-producer-credentials.sh
