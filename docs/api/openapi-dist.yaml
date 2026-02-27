@@ -16,10 +16,22 @@ tags:
     description: Authentication
   - name: API Keys
     description: API key management. Root users see all keys; regular users see only their own.
+  - name: Accounts
+    description: Trading account upsert
+  - name: Strategies
+    description: Trading strategy upsert
   - name: Events
     description: Event management (keys, push, consume, ack, history, response)
   - name: Media
     description: File upload and download management
+  - name: Orders
+    description: Trading order upsert
+  - name: Heartbeats
+    description: System and strategy heartbeat tracking
+  - name: Logs
+    description: Account and strategy log entries
+  - name: Snapshots
+    description: Account and strategy point-in-time snapshots
 paths:
   /health/:
     get:
@@ -138,6 +150,7 @@ paths:
                     created_at: '2026-02-20T08:00:00Z'
                 meta:
                   count: 1
+  /api/v1/api-key/:
     post:
       tags:
         - API Keys
@@ -172,7 +185,7 @@ paths:
                   is_active: true
                   expires_at: null
                   created_at: '2026-02-26T10:30:00Z'
-  /api/v1/api-keys/{api_key_id}/:
+  /api/v1/api-key/{id}/:
     get:
       tags:
         - API Keys
@@ -353,7 +366,7 @@ paths:
                   - key: patch.account.enable
                     name: PATCH_ACCOUNT_ENABLE
                     schema: {}
-  /api/v1/accounts/{account_id}/events:
+  /api/v1/account/{id}/events:
     post:
       tags:
         - Events
@@ -400,7 +413,7 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/Event'
-  /api/v1/accounts/{account_id}/events/consume/:
+  /api/v1/account/{id}/events/consume/:
     post:
       tags:
         - Events
@@ -457,7 +470,7 @@ paths:
                         properties:
                           count:
                             type: integer
-  /api/v1/accounts/{account_id}/events/history/:
+  /api/v1/account/{id}/events/history/:
     get:
       tags:
         - Events
@@ -500,7 +513,7 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Event'
-  /api/v1/accounts/{account_id}/events/{event_id}/ack/:
+  /api/v1/account/{id}/event/{event_id}/ack/:
     patch:
       tags:
         - Events
@@ -543,7 +556,7 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/Event'
-  /api/v1/accounts/{account_id}/events/{event_id}/response/:
+  /api/v1/account/{id}/event/{event_id}/response/:
     get:
       tags:
         - Events
@@ -567,7 +580,7 @@ paths:
                     ticket: 12345
                     status: filled
                     open_price: 1.105
-  /api/v1/accounts/{account_id}/media/upload/:
+  /api/v1/account/{id}/media/upload/:
     post:
       tags:
         - Media
@@ -607,7 +620,7 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/MediaFile'
-  /api/v1/accounts/{account_id}/media/{file_name}/download/:
+  /api/v1/account/{id}/media/{file_name}/download/:
     get:
       tags:
         - Media
@@ -634,7 +647,7 @@ paths:
           description: File not found
         '410':
           description: File has expired
-  /api/v1/accounts/{account_id}/media/{file_name}/:
+  /api/v1/account/{id}/media/{file_name}/:
     delete:
       tags:
         - Media
@@ -652,6 +665,325 @@ paths:
           description: File deleted
         '404':
           description: File not found
+  /api/v1/account/:
+    post:
+      tags:
+        - Accounts
+      summary: Upsert account
+      description: |
+        Creates or updates a trading account. If an account with the given `account_id`
+        already exists and belongs to the authenticated user, it is updated. Otherwise,
+        a new account is created.
+
+        Only provided optional fields are written; omitted fields remain unchanged on update.
+
+        **Permissions:** `root` or `producer`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertAccountRequest'
+            examples:
+              create:
+                summary: Create account with full details
+                value:
+                  account_id: 12345678
+                  broker: ICMarkets
+                  server: ICMarketsSC-Demo
+                  currency: USD
+                  leverage: 500
+                  balance: 10000
+                  equity: 10250.5
+                  margin: 200
+                  free_margin: 10050.5
+                  profit: 250.5
+                  margin_level: 5125.25
+              update:
+                summary: Update balance fields only
+                value:
+                  account_id: 12345678
+                  balance: 10500
+                  equity: 10500
+      responses:
+        '200':
+          description: Account updated
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 12345678
+        '201':
+          description: Account created
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 12345678
+        '403':
+          description: Account belongs to another user
+  /api/v1/strategy/:
+    post:
+      tags:
+        - Strategies
+      summary: Upsert strategy
+      description: |
+        Creates or updates a trading strategy. The strategy is linked to an account
+        owned by the authenticated user.
+
+        If a strategy with the given `id` already exists and its account belongs to
+        the authenticated user, it is updated. Otherwise, a new strategy is created.
+
+        **Permissions:** `root` or `producer`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertStrategyRequest'
+            example:
+              id: 550e8400-e29b-41d4-a716-446655440000
+              account_id: 12345678
+              symbol: EURUSD
+              prefix: EU
+              name: Euro Scalper v2
+              magic_number: 100001
+              balance: 5000
+      responses:
+        '200':
+          description: Strategy updated
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+        '201':
+          description: Strategy created
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+        '403':
+          description: Account or strategy belongs to another user
+  /api/v1/heartbeat/:
+    post:
+      tags:
+        - Heartbeats
+      summary: Store heartbeat
+      description: |
+        Records a heartbeat event for a trading account or strategy.
+        Used to track the lifecycle and health of running systems.
+
+        **Permissions:** `root` or `producer`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHeartbeatRequest'
+            examples:
+              strategy_running:
+                summary: Strategy running heartbeat
+                value:
+                  account_id: 12345678
+                  strategy_id: 550e8400-e29b-41d4-a716-446655440000
+                  event: on_running
+                  system: strategy
+              system_init:
+                summary: System initialization
+                value:
+                  account_id: 12345678
+                  event: on_init
+                  system: system
+      responses:
+        '201':
+          description: Heartbeat recorded
+          content:
+            application/json:
+              example:
+                success: true
+        '403':
+          description: Account belongs to another user
+  /api/v1/order/:
+    post:
+      tags:
+        - Orders
+      summary: Upsert order
+      description: |
+        Creates or updates a trading order. Orders are stored in MongoDB.
+
+        If an order with the given `id` already exists and its `account_id` matches,
+        it is updated. Otherwise, a new order is created.
+
+        **Permissions:** `root` or `producer`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertOrderRequest'
+            examples:
+              new_order:
+                summary: Create a new buy order
+                value:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  account_id: 12345678
+                  strategy_id: 660e8400-e29b-41d4-a716-446655440000
+                  symbol: EURUSD
+                  side: buy
+                  status: open
+                  volume: 0.1
+                  open_price: 1.105
+                  stop_loss: 1.1
+                  take_profit: 1.11
+                  opened_at: '2026-02-27T10:30:00Z'
+              close_order:
+                summary: Update order to closed
+                value:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  account_id: 12345678
+                  symbol: EURUSD
+                  side: buy
+                  status: closed
+                  volume: 0.1
+                  close_price: 1.108
+                  profit: 30
+                  close_reason: tp
+                  closed_at: '2026-02-27T12:00:00Z'
+      responses:
+        '200':
+          description: Order updated
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+        '201':
+          description: Order created
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+        '403':
+          description: Account belongs to another user
+  /api/v1/log/:
+    post:
+      tags:
+        - Logs
+      summary: Store log entry
+      description: |
+        Records a log entry for a trading account or strategy.
+        The `level` field is free-form (e.g. `info`, `warning`, `error`).
+
+        **Permissions:** `root` or `producer`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLogRequest'
+            examples:
+              strategy_log:
+                summary: Strategy info log
+                value:
+                  account_id: 12345678
+                  strategy_id: 550e8400-e29b-41d4-a716-446655440000
+                  level: info
+                  message: 'Order #12345 opened at 1.10500'
+              error_log:
+                summary: System error log
+                value:
+                  account_id: 12345678
+                  level: error
+                  message: Connection to broker lost after 3 retries
+      responses:
+        '201':
+          description: Log entry recorded
+          content:
+            application/json:
+              example:
+                success: true
+        '403':
+          description: Account belongs to another user
+  /api/v1/account-snapshot/:
+    post:
+      tags:
+        - Snapshots
+      summary: Store account snapshot
+      description: |
+        Records a point-in-time snapshot of an account's financial state.
+        Used for historical tracking and analytics.
+
+        **Permissions:** `root` or `producer`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountSnapshotRequest'
+            example:
+              account_id: 12345678
+              balance: 10000
+              equity: 10250.5
+              profit: 250.5
+              margin_level: 5125.25
+              open_positions: 3
+              drawdown_pct: 2.5
+              daily_pnl: 150
+              floating_pnl: 100.5
+              open_order_count: 3
+              exposure_lots: 0.3
+      responses:
+        '201':
+          description: Snapshot recorded
+          content:
+            application/json:
+              example:
+                success: true
+        '403':
+          description: Account belongs to another user
+  /api/v1/strategy-snapshot/:
+    post:
+      tags:
+        - Snapshots
+      summary: Store strategy snapshot
+      description: |
+        Records a point-in-time snapshot of a strategy's performance.
+        Used for historical tracking and analytics.
+
+        **Permissions:** `root` or `producer`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStrategySnapshotRequest'
+            example:
+              account_id: 12345678
+              strategy_id: 550e8400-e29b-41d4-a716-446655440000
+              nav: 5250
+              drawdown_pct: 1.25
+              daily_pnl: 75
+              floating_pnl: 50
+              open_order_count: 2
+              exposure_lots: 0.2
+      responses:
+        '201':
+          description: Snapshot recorded
+          content:
+            application/json:
+              example:
+                success: true
+        '403':
+          description: Account belongs to another user
 components:
   securitySchemes:
     bearerAuth:
@@ -660,19 +992,19 @@ components:
       bearerFormat: JWT
   parameters:
     ApiKeyId:
-      name: api_key_id
+      name: id
       in: path
       required: true
       schema:
         type: string
         format: uuid
     AccountId:
-      name: account_id
+      name: id
       in: path
       required: true
+      description: MetaTrader account ID
       schema:
-        type: string
-        format: uuid
+        type: integer
     EventId:
       name: event_id
       in: path
@@ -867,6 +1199,310 @@ components:
         created_at:
           type: string
           format: date-time
+    UpsertAccountRequest:
+      type: object
+      required:
+        - account_id
+      properties:
+        account_id:
+          type: integer
+        broker:
+          type: string
+          maxLength: 255
+        server:
+          type: string
+          maxLength: 255
+        currency:
+          type: string
+          maxLength: 10
+        leverage:
+          type: integer
+          minimum: 1
+        balance:
+          type: number
+          format: decimal
+        equity:
+          type: number
+          format: decimal
+        margin:
+          type: number
+          format: decimal
+        free_margin:
+          type: number
+          format: decimal
+        profit:
+          type: number
+          format: decimal
+        margin_level:
+          type: number
+          format: decimal
+    UpsertStrategyRequest:
+      type: object
+      required:
+        - id
+        - account_id
+        - symbol
+        - prefix
+        - name
+        - magic_number
+        - balance
+      properties:
+        id:
+          type: string
+          format: uuid
+        account_id:
+          type: integer
+        symbol:
+          type: string
+          maxLength: 50
+        prefix:
+          type: string
+          maxLength: 50
+        name:
+          type: string
+          maxLength: 255
+        magic_number:
+          type: integer
+        balance:
+          type: number
+          format: decimal
+    CreateHeartbeatRequest:
+      type: object
+      required:
+        - account_id
+        - event
+        - system
+      properties:
+        account_id:
+          type: integer
+        strategy_id:
+          type: string
+          format: uuid
+          nullable: true
+        event:
+          type: string
+          enum:
+            - on_init
+            - on_running
+            - on_deinit
+            - on_error
+        system:
+          type: string
+          enum:
+            - strategy
+            - system
+    UpsertOrderRequest:
+      type: object
+      required:
+        - id
+        - account_id
+        - symbol
+        - side
+        - status
+        - volume
+      properties:
+        id:
+          type: string
+          format: uuid
+        account_id:
+          type: integer
+        strategy_id:
+          type: string
+          format: uuid
+          nullable: true
+        deal_id:
+          type: integer
+          nullable: true
+        position_id:
+          type: integer
+          nullable: true
+        source:
+          type: string
+          maxLength: 50
+        symbol:
+          type: string
+          maxLength: 50
+        side:
+          type: string
+          maxLength: 10
+        status:
+          type: string
+          enum:
+            - pending
+            - open
+            - closing
+            - closed
+            - cancelled
+        is_market_order:
+          type: boolean
+          default: false
+        volume:
+          type: number
+          format: decimal
+        signal_price:
+          type: number
+          format: decimal
+          nullable: true
+        open_at_price:
+          type: number
+          format: decimal
+          nullable: true
+        open_price:
+          type: number
+          format: decimal
+          nullable: true
+        close_price:
+          type: number
+          format: decimal
+          nullable: true
+        take_profit:
+          type: number
+          format: decimal
+          nullable: true
+        stop_loss:
+          type: number
+          format: decimal
+          nullable: true
+        profit:
+          type: number
+          format: decimal
+          nullable: true
+        gross_profit:
+          type: number
+          format: decimal
+          nullable: true
+        commission:
+          type: number
+          format: decimal
+          nullable: true
+        swap:
+          type: number
+          format: decimal
+          nullable: true
+        close_reason:
+          type: string
+          enum:
+            - tp
+            - sl
+            - expert
+            - client
+            - mobile
+            - web
+            - unknown
+          nullable: true
+        signal_at:
+          type: string
+          format: date-time
+          nullable: true
+        opened_at:
+          type: string
+          format: date-time
+          nullable: true
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+    CreateLogRequest:
+      type: object
+      required:
+        - account_id
+        - level
+        - message
+      properties:
+        account_id:
+          type: integer
+        strategy_id:
+          type: string
+          format: uuid
+          nullable: true
+        level:
+          type: string
+          maxLength: 20
+        message:
+          type: string
+          maxLength: 5000
+    CreateAccountSnapshotRequest:
+      type: object
+      required:
+        - account_id
+        - balance
+        - equity
+        - profit
+        - margin_level
+        - open_positions
+        - drawdown_pct
+        - daily_pnl
+        - floating_pnl
+        - open_order_count
+        - exposure_lots
+      properties:
+        account_id:
+          type: integer
+        balance:
+          type: number
+          format: decimal
+        equity:
+          type: number
+          format: decimal
+        profit:
+          type: number
+          format: decimal
+        margin_level:
+          type: number
+          format: decimal
+        open_positions:
+          type: integer
+          minimum: 0
+        drawdown_pct:
+          type: number
+          format: decimal
+        daily_pnl:
+          type: number
+          format: decimal
+        floating_pnl:
+          type: number
+          format: decimal
+        open_order_count:
+          type: integer
+          minimum: 0
+        exposure_lots:
+          type: number
+          format: decimal
+    CreateStrategySnapshotRequest:
+      type: object
+      required:
+        - account_id
+        - strategy_id
+        - nav
+        - drawdown_pct
+        - daily_pnl
+        - floating_pnl
+        - open_order_count
+        - exposure_lots
+      properties:
+        account_id:
+          type: integer
+        strategy_id:
+          type: string
+          format: uuid
+        nav:
+          type: number
+          format: decimal
+        drawdown_pct:
+          type: number
+          format: decimal
+        daily_pnl:
+          type: number
+          format: decimal
+        floating_pnl:
+          type: number
+          format: decimal
+        open_order_count:
+          type: integer
+          minimum: 0
+        exposure_lots:
+          type: number
+          format: decimal
     ApiKey:
       type: object
       properties:

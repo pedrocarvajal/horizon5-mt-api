@@ -1,0 +1,33 @@
+store:
+  post:
+    tags: [Snapshots]
+    summary: Store strategy snapshot
+    description: |
+      Records a point-in-time snapshot of a strategy's performance.
+      Used for historical tracking and analytics.
+
+      **Permissions:** `root` or `producer`
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/CreateStrategySnapshotRequest"
+          example:
+            account_id: 12345678
+            strategy_id: "550e8400-e29b-41d4-a716-446655440000"
+            nav: 5250.00
+            drawdown_pct: 1.2500
+            daily_pnl: 75.00
+            floating_pnl: 50.00
+            open_order_count: 2
+            exposure_lots: 0.20
+    responses:
+      "201":
+        description: Snapshot recorded
+        content:
+          application/json:
+            example:
+              success: true
+      "403":
+        description: Account belongs to another user

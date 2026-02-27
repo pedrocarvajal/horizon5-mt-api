@@ -1,0 +1,38 @@
+store:
+  post:
+    tags: [Heartbeats]
+    summary: Store heartbeat
+    description: |
+      Records a heartbeat event for a trading account or strategy.
+      Used to track the lifecycle and health of running systems.
+
+      **Permissions:** `root` or `producer`
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/CreateHeartbeatRequest"
+          examples:
+            strategy_running:
+              summary: Strategy running heartbeat
+              value:
+                account_id: 12345678
+                strategy_id: "550e8400-e29b-41d4-a716-446655440000"
+                event: "on_running"
+                system: "strategy"
+            system_init:
+              summary: System initialization
+              value:
+                account_id: 12345678
+                event: "on_init"
+                system: "system"
+    responses:
+      "201":
+        description: Heartbeat recorded
+        content:
+          application/json:
+            example:
+              success: true
+      "403":
+        description: Account belongs to another user

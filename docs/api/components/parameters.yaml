@@ -1,10 +1,10 @@
 AccountId:
-  name: account_id
+  name: id
   in: path
   required: true
+  description: MetaTrader account ID
   schema:
-    type: string
-    format: uuid
+    type: integer
 
 EventId:
   name: event_id
@@ -16,7 +16,7 @@ EventId:
     pattern: "^[a-f0-9]{24}$"
 
 ApiKeyId:
-  name: api_key_id
+  name: id
   in: path
   required: true
   schema:

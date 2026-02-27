@@ -19,10 +19,22 @@ tags:
     description: Authentication
   - name: API Keys
     description: API key management. Root users see all keys; regular users see only their own.
+  - name: Accounts
+    description: Trading account upsert
+  - name: Strategies
+    description: Trading strategy upsert
   - name: Events
     description: Event management (keys, push, consume, ack, history, response)
   - name: Media
     description: File upload and download management
+  - name: Orders
+    description: Trading order upsert
+  - name: Heartbeats
+    description: System and strategy heartbeat tracking
+  - name: Logs
+    description: Account and strategy log entries
+  - name: Snapshots
+    description: Account and strategy point-in-time snapshots
 
 paths:
   /health/:
@@ -30,27 +42,43 @@ paths:
   /api/v1/auth/login/:
     $ref: "paths/auth.yaml#/login"
   /api/v1/api-keys/:
-    $ref: "paths/api_keys.yaml#/user_api_keys"
-  /api/v1/api-keys/{api_key_id}/:
-    $ref: "paths/api_keys.yaml#/user_api_key_detail"
+    $ref: "paths/api_keys.yaml#/list"
+  /api/v1/api-key/:
+    $ref: "paths/api_keys.yaml#/store"
+  /api/v1/api-key/{id}/:
+    $ref: "paths/api_keys.yaml#/detail"
   /api/v1/events/keys/:
     $ref: "paths/events.yaml#/keys"
-  /api/v1/accounts/{account_id}/events:
+  /api/v1/account/{id}/events:
     $ref: "paths/events.yaml#/push"
-  /api/v1/accounts/{account_id}/events/consume/:
+  /api/v1/account/{id}/events/consume/:
     $ref: "paths/events.yaml#/consume"
-  /api/v1/accounts/{account_id}/events/history/:
+  /api/v1/account/{id}/events/history/:
     $ref: "paths/events.yaml#/history"
-  /api/v1/accounts/{account_id}/events/{event_id}/ack/:
+  /api/v1/account/{id}/event/{event_id}/ack/:
     $ref: "paths/events.yaml#/ack"
-  /api/v1/accounts/{account_id}/events/{event_id}/response/:
+  /api/v1/account/{id}/event/{event_id}/response/:
     $ref: "paths/events.yaml#/response"
-  /api/v1/accounts/{account_id}/media/upload/:
+  /api/v1/account/{id}/media/upload/:
     $ref: "paths/media.yaml#/upload"
-  /api/v1/accounts/{account_id}/media/{file_name}/download/:
+  /api/v1/account/{id}/media/{file_name}/download/:
     $ref: "paths/media.yaml#/download"
-  /api/v1/accounts/{account_id}/media/{file_name}/:
+  /api/v1/account/{id}/media/{file_name}/:
     $ref: "paths/media.yaml#/destroy"
+  /api/v1/account/:
+    $ref: "paths/account.yaml#/upsert"
+  /api/v1/strategy/:
+    $ref: "paths/strategy.yaml#/upsert"
+  /api/v1/heartbeat/:
+    $ref: "paths/heartbeat.yaml#/store"
+  /api/v1/order/:
+    $ref: "paths/order.yaml#/upsert"
+  /api/v1/log/:
+    $ref: "paths/log.yaml#/store"
+  /api/v1/account-snapshot/:
+    $ref: "paths/account_snapshot.yaml#/store"
+  /api/v1/strategy-snapshot/:
+    $ref: "paths/strategy_snapshot.yaml#/store"
 
 components:
   securitySchemes:

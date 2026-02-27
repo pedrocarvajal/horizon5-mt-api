@@ -1,0 +1,38 @@
+store:
+  post:
+    tags: [Logs]
+    summary: Store log entry
+    description: |
+      Records a log entry for a trading account or strategy.
+      The `level` field is free-form (e.g. `info`, `warning`, `error`).
+
+      **Permissions:** `root` or `producer`
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/CreateLogRequest"
+          examples:
+            strategy_log:
+              summary: Strategy info log
+              value:
+                account_id: 12345678
+                strategy_id: "550e8400-e29b-41d4-a716-446655440000"
+                level: "info"
+                message: "Order #12345 opened at 1.10500"
+            error_log:
+              summary: System error log
+              value:
+                account_id: 12345678
+                level: "error"
+                message: "Connection to broker lost after 3 retries"
+    responses:
+      "201":
+        description: Log entry recorded
+        content:
+          application/json:
+            example:
+              success: true
+      "403":
+        description: Account belongs to another user

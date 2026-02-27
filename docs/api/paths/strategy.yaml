@@ -1,0 +1,45 @@
+upsert:
+  post:
+    tags: [Strategies]
+    summary: Upsert strategy
+    description: |
+      Creates or updates a trading strategy. The strategy is linked to an account
+      owned by the authenticated user.
+
+      If a strategy with the given `id` already exists and its account belongs to
+      the authenticated user, it is updated. Otherwise, a new strategy is created.
+
+      **Permissions:** `root` or `producer`
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/UpsertStrategyRequest"
+          example:
+            id: "550e8400-e29b-41d4-a716-446655440000"
+            account_id: 12345678
+            symbol: "EURUSD"
+            prefix: "EU"
+            name: "Euro Scalper v2"
+            magic_number: 100001
+            balance: 5000.00
+    responses:
+      "201":
+        description: Strategy created
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+      "200":
+        description: Strategy updated
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+      "403":
+        description: Account or strategy belongs to another user

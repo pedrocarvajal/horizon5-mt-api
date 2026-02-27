@@ -1,0 +1,36 @@
+store:
+  post:
+    tags: [Snapshots]
+    summary: Store account snapshot
+    description: |
+      Records a point-in-time snapshot of an account's financial state.
+      Used for historical tracking and analytics.
+
+      **Permissions:** `root` or `producer`
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/CreateAccountSnapshotRequest"
+          example:
+            account_id: 12345678
+            balance: 10000.00
+            equity: 10250.50
+            profit: 250.50
+            margin_level: 5125.25
+            open_positions: 3
+            drawdown_pct: 2.5000
+            daily_pnl: 150.00
+            floating_pnl: 100.50
+            open_order_count: 3
+            exposure_lots: 0.30
+    responses:
+      "201":
+        description: Snapshot recorded
+        content:
+          application/json:
+            example:
+              success: true
+      "403":
+        description: Account belongs to another user

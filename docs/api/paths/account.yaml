@@ -1,0 +1,58 @@
+upsert:
+  post:
+    tags: [Accounts]
+    summary: Upsert account
+    description: |
+      Creates or updates a trading account. If an account with the given `account_id`
+      already exists and belongs to the authenticated user, it is updated. Otherwise,
+      a new account is created.
+
+      Only provided optional fields are written; omitted fields remain unchanged on update.
+
+      **Permissions:** `root` or `producer`
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/UpsertAccountRequest"
+          examples:
+            create:
+              summary: Create account with full details
+              value:
+                account_id: 12345678
+                broker: "ICMarkets"
+                server: "ICMarketsSC-Demo"
+                currency: "USD"
+                leverage: 500
+                balance: 10000.00
+                equity: 10250.50
+                margin: 200.00
+                free_margin: 10050.50
+                profit: 250.50
+                margin_level: 5125.25
+            update:
+              summary: Update balance fields only
+              value:
+                account_id: 12345678
+                balance: 10500.00
+                equity: 10500.00
+    responses:
+      "201":
+        description: Account created
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                id: 12345678
+      "200":
+        description: Account updated
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                id: 12345678
+      "403":
+        description: Account belongs to another user

@@ -186,6 +186,260 @@ EventStatus:
   type: string
   enum: [pending, delivered, processed, failed]
 
+UpsertAccountRequest:
+  type: object
+  required: [account_id]
+  properties:
+    account_id:
+      type: integer
+    broker:
+      type: string
+      maxLength: 255
+    server:
+      type: string
+      maxLength: 255
+    currency:
+      type: string
+      maxLength: 10
+    leverage:
+      type: integer
+      minimum: 1
+    balance:
+      type: number
+      format: decimal
+    equity:
+      type: number
+      format: decimal
+    margin:
+      type: number
+      format: decimal
+    free_margin:
+      type: number
+      format: decimal
+    profit:
+      type: number
+      format: decimal
+    margin_level:
+      type: number
+      format: decimal
+
+UpsertStrategyRequest:
+  type: object
+  required: [id, account_id, symbol, prefix, name, magic_number, balance]
+  properties:
+    id:
+      type: string
+      format: uuid
+    account_id:
+      type: integer
+    symbol:
+      type: string
+      maxLength: 50
+    prefix:
+      type: string
+      maxLength: 50
+    name:
+      type: string
+      maxLength: 255
+    magic_number:
+      type: integer
+    balance:
+      type: number
+      format: decimal
+
+CreateHeartbeatRequest:
+  type: object
+  required: [account_id, event, system]
+  properties:
+    account_id:
+      type: integer
+    strategy_id:
+      type: string
+      format: uuid
+      nullable: true
+    event:
+      type: string
+      enum: [on_init, on_running, on_deinit, on_error]
+    system:
+      type: string
+      enum: [strategy, system]
+
+UpsertOrderRequest:
+  type: object
+  required: [id, account_id, symbol, side, status, volume]
+  properties:
+    id:
+      type: string
+      format: uuid
+    account_id:
+      type: integer
+    strategy_id:
+      type: string
+      format: uuid
+      nullable: true
+    deal_id:
+      type: integer
+      nullable: true
+    position_id:
+      type: integer
+      nullable: true
+    source:
+      type: string
+      maxLength: 50
+    symbol:
+      type: string
+      maxLength: 50
+    side:
+      type: string
+      maxLength: 10
+    status:
+      type: string
+      enum: [pending, open, closing, closed, cancelled]
+    is_market_order:
+      type: boolean
+      default: false
+    volume:
+      type: number
+      format: decimal
+    signal_price:
+      type: number
+      format: decimal
+      nullable: true
+    open_at_price:
+      type: number
+      format: decimal
+      nullable: true
+    open_price:
+      type: number
+      format: decimal
+      nullable: true
+    close_price:
+      type: number
+      format: decimal
+      nullable: true
+    take_profit:
+      type: number
+      format: decimal
+      nullable: true
+    stop_loss:
+      type: number
+      format: decimal
+      nullable: true
+    profit:
+      type: number
+      format: decimal
+      nullable: true
+    gross_profit:
+      type: number
+      format: decimal
+      nullable: true
+    commission:
+      type: number
+      format: decimal
+      nullable: true
+    swap:
+      type: number
+      format: decimal
+      nullable: true
+    close_reason:
+      type: string
+      enum: [tp, sl, expert, client, mobile, web, unknown]
+      nullable: true
+    signal_at:
+      type: string
+      format: date-time
+      nullable: true
+    opened_at:
+      type: string
+      format: date-time
+      nullable: true
+    closed_at:
+      type: string
+      format: date-time
+      nullable: true
+
+CreateLogRequest:
+  type: object
+  required: [account_id, level, message]
+  properties:
+    account_id:
+      type: integer
+    strategy_id:
+      type: string
+      format: uuid
+      nullable: true
+    level:
+      type: string
+      maxLength: 20
+    message:
+      type: string
+      maxLength: 5000
+
+CreateAccountSnapshotRequest:
+  type: object
+  required: [account_id, balance, equity, profit, margin_level, open_positions, drawdown_pct, daily_pnl, floating_pnl, open_order_count, exposure_lots]
+  properties:
+    account_id:
+      type: integer
+    balance:
+      type: number
+      format: decimal
+    equity:
+      type: number
+      format: decimal
+    profit:
+      type: number
+      format: decimal
+    margin_level:
+      type: number
+      format: decimal
+    open_positions:
+      type: integer
+      minimum: 0
+    drawdown_pct:
+      type: number
+      format: decimal
+    daily_pnl:
+      type: number
+      format: decimal
+    floating_pnl:
+      type: number
+      format: decimal
+    open_order_count:
+      type: integer
+      minimum: 0
+    exposure_lots:
+      type: number
+      format: decimal
+
+CreateStrategySnapshotRequest:
+  type: object
+  required: [account_id, strategy_id, nav, drawdown_pct, daily_pnl, floating_pnl, open_order_count, exposure_lots]
+  properties:
+    account_id:
+      type: integer
+    strategy_id:
+      type: string
+      format: uuid
+    nav:
+      type: number
+      format: decimal
+    drawdown_pct:
+      type: number
+      format: decimal
+    daily_pnl:
+      type: number
+      format: decimal
+    floating_pnl:
+      type: number
+      format: decimal
+    open_order_count:
+      type: integer
+      minimum: 0
+    exposure_lots:
+      type: number
+      format: decimal
+
 MediaFile:
   type: object
   properties:
