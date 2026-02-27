@@ -11,6 +11,7 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "pymongo>=4.15",
     "structlog>=24.0.0",
+    "django-apscheduler>=0.7",
 ]
 
 [dependency-groups]

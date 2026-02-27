@@ -1,8 +1,0 @@
-0 3 * * * python manage.py check_stuck_events
-5 3 * * * python manage.py clean_expired_media
-
-0 4 * * 0 python manage.py purge_logs
-5 4 * * 0 python manage.py purge_heartbeats
-10 4 * * 0 python manage.py purge_events
-15 4 * * 0 python manage.py purge_account_snapshots
-20 4 * * 0 python manage.py purge_strategy_snapshots
