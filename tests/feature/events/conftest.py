@@ -8,7 +8,7 @@ from app.enums import EventStatus
 def create_event(account_id, user_id, **overrides):
     now = timezone.now()
     defaults = {
-        "account_id": str(account_id),
+        "account_id": account_id,
         "user_id": str(user_id),
         "consumer_id": None,
         "key": "post.order",
