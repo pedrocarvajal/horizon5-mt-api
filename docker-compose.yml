@@ -86,6 +86,7 @@ services:
 
   horizon-mt-api-cron:
     build: .
+    init: true
     command: supercronic /app/crontab
     env_file: .env
     environment:
