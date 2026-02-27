@@ -47,4 +47,4 @@ def platform_client(platform_user):
 
 @pytest.fixture()
 def account(platform_user):
-    return Account.objects.create(user=platform_user)
+    return Account.objects.create(id=111222, user=platform_user)
