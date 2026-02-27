@@ -1,4 +1,4 @@
-.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-db-migrate run-db-seed-database run-tests run-linter-checks run-linter-fixes run-hooks-install run-docs-bundle run-get-producer-credentials
+.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-docker-up-prod run-docker-build-prod run-docker-down-prod run-db-migrate run-db-seed-database run-tests run-linter-checks run-linter-fixes run-hooks-install run-docs-bundle run-get-producer-credentials
 
 run-dev:
 	@bash scripts/make/run-dev.sh
@@ -14,6 +14,15 @@ run-docker-build:
 
 run-docker-down:
 	@bash scripts/make/run-docker-down.sh
+
+run-docker-up-prod:
+	@APP_ENV=production bash scripts/make/run-docker-up.sh
+
+run-docker-build-prod:
+	@APP_ENV=production bash scripts/make/run-docker-build.sh
+
+run-docker-down-prod:
+	@APP_ENV=production bash scripts/make/run-docker-down.sh
 
 run-db-migrate:
 	@bash scripts/make/run-db-migrate.sh
