@@ -40,6 +40,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
+      MONGODB_HOST: horizon-mt-api-mongodb
+      MONGODB_PORT: 27017
+      MONGODB_DB: ${POSTGRES_DB}
     depends_on:
       horizon-mt-api-postgres:
         condition: service_healthy
@@ -52,6 +55,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
+      MONGODB_HOST: horizon-mt-api-mongodb
+      MONGODB_PORT: 27017
+      MONGODB_DB: ${POSTGRES_DB}
     depends_on:
       horizon-mt-api-migrate:
         condition: service_completed_successfully
@@ -63,7 +69,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
-      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@horizon-mt-api-mongodb:27017/${POSTGRES_DB}?authSource=admin&directConnection=true
+      MONGODB_HOST: horizon-mt-api-mongodb
+      MONGODB_PORT: 27017
+      MONGODB_DB: ${POSTGRES_DB}
     ports:
       - "8000:8000"
     depends_on:
@@ -82,7 +90,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@horizon-mt-api-postgres:5432/${POSTGRES_DB}
-      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@horizon-mt-api-mongodb:27017/${POSTGRES_DB}?authSource=admin&directConnection=true
+      MONGODB_HOST: horizon-mt-api-mongodb
+      MONGODB_PORT: 27017
+      MONGODB_DB: ${POSTGRES_DB}
     depends_on:
       horizon-mt-api-postgres:
         condition: service_healthy

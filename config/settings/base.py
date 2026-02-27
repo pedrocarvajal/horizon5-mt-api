@@ -55,8 +55,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+_database_url: str = env("DATABASE_URL", default="")  # type: ignore[arg-type]
+
+if not _database_url:
+    _postgres_host: str = env("POSTGRES_HOST", default="127.0.0.1")  # type: ignore[arg-type]
+    _postgres_port: int = env.int("POSTGRES_PORT", default=5432)  # type: ignore[arg-type]
+    _database_url = (
+        f"postgres://{env('POSTGRES_USER')}:{env('POSTGRES_PASSWORD')}"
+        f"@{_postgres_host}:{_postgres_port}"
+        f"/{env('POSTGRES_DB')}"
+    )
+
 DATABASES = {
-    "default": env.db("DATABASE_URL"),
+    "default": environ.Env.db_url_config(_database_url),
 }
 
 AUTH_USER_MODEL = "app.User"
@@ -82,7 +93,16 @@ STORAGE_MAX_UPLOAD_SIZE = env.int("STORAGE_MAX_UPLOAD_SIZE", default=1_073_741_8
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-MONGODB_URI = env("MONGODB_URI")
+_mongodb_host: str = env("MONGODB_HOST", default="127.0.0.1")  # type: ignore[arg-type]
+_mongodb_port: int = env.int("MONGODB_PORT", default=27017)  # type: ignore[arg-type]
+_mongodb_database: str = env("MONGODB_DB", default=env("POSTGRES_DB"))  # type: ignore[arg-type]
+
+MONGODB_URI = (
+    f"mongodb://{env('MONGO_INITDB_ROOT_USERNAME')}:{env('MONGO_INITDB_ROOT_PASSWORD')}"
+    f"@{_mongodb_host}:{_mongodb_port}"
+    f"/{_mongodb_database}"
+    f"?authSource=admin&directConnection=true"
+)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -116,6 +136,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     "GET",

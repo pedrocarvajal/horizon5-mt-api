@@ -35,3 +35,5 @@ storage/
 
 *.mo
 *.pot
+
+PLAN.md
