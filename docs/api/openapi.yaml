@@ -20,9 +20,9 @@ tags:
   - name: API Keys
     description: API key management. Root users see all keys; regular users see only their own.
   - name: Accounts
-    description: Trading account upsert
+    description: Trading account listing and upsert
   - name: Strategies
-    description: Trading strategy upsert
+    description: Trading strategy listing and upsert
   - name: Events
     description: Event management (keys, push, consume, ack, history, response)
   - name: Media
@@ -71,8 +71,12 @@ paths:
     $ref: "paths/media.yaml#/download"
   /api/v1/account/{id}/media/{file_name}/:
     $ref: "paths/media.yaml#/destroy"
+  /api/v1/accounts/:
+    $ref: "paths/account.yaml#/list"
   /api/v1/account/:
     $ref: "paths/account.yaml#/upsert"
+  /api/v1/strategies/:
+    $ref: "paths/strategy.yaml#/list"
   /api/v1/strategy/:
     $ref: "paths/strategy.yaml#/upsert"
   /api/v1/heartbeat/:
@@ -81,8 +85,12 @@ paths:
     $ref: "paths/order.yaml#/upsert"
   /api/v1/log/:
     $ref: "paths/log.yaml#/store"
+  /api/v1/account-snapshots/:
+    $ref: "paths/account_snapshot.yaml#/list"
   /api/v1/account-snapshot/:
     $ref: "paths/account_snapshot.yaml#/store"
+  /api/v1/strategy-snapshots/:
+    $ref: "paths/strategy_snapshot.yaml#/list"
   /api/v1/strategy-snapshot/:
     $ref: "paths/strategy_snapshot.yaml#/store"
 

@@ -3,6 +3,7 @@ from app.http.controllers.account_snapshot import AccountSnapshotController
 from app.http.controllers.api_key import ApiKeyController
 from app.http.controllers.auth import AuthController
 from app.http.controllers.event import EventController
+from app.http.controllers.health import HealthController
 from app.http.controllers.heartbeat import HeartbeatController
 from app.http.controllers.log import LogController
 from app.http.controllers.media import MediaController
@@ -44,8 +45,14 @@ urlpatterns = Route.collect(
         Route.get("<str:file_name>/download/", MediaController, "download"),
         Route.delete("<str:file_name>/", MediaController, "destroy"),
     ),
+    Route.prefix("accounts").group(
+        Route.get("", AccountController, "index"),
+    ),
     Route.prefix("account").group(
         Route.post("", AccountController, "upsert"),
+    ),
+    Route.prefix("strategies").group(
+        Route.get("", StrategyController, "index"),
     ),
     Route.prefix("strategy").group(
         Route.post("", StrategyController, "upsert"),
@@ -59,10 +66,17 @@ urlpatterns = Route.collect(
     Route.prefix("log").group(
         Route.post("", LogController, "store"),
     ),
+    Route.prefix("account-snapshots").group(
+        Route.get("", AccountSnapshotController, "index"),
+    ),
     Route.prefix("account-snapshot").group(
         Route.post("", AccountSnapshotController, "store"),
+    ),
+    Route.prefix("strategy-snapshots").group(
+        Route.get("", StrategySnapshotController, "index"),
     ),
     Route.prefix("strategy-snapshot").group(
         Route.post("", StrategySnapshotController, "store"),
     ),
+    Route.get("health/", HealthController, "check"),
 )

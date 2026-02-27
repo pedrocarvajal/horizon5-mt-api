@@ -1,3 +1,68 @@
+list:
+  get:
+    tags: [Snapshots]
+    summary: List account snapshots
+    description: |
+      Returns paginated snapshots for a given account, ordered by `created_at` descending.
+
+      **Permissions:** `root` only
+    parameters:
+      - name: account_id
+        in: query
+        required: true
+        schema:
+          type: integer
+        description: The account ID to retrieve snapshots for.
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: Page number.
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+        description: Number of items per page.
+    responses:
+      "200":
+        description: List of account snapshots
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                - id: "6789abcdef012345"
+                  account_id: 12345678
+                  balance: 10000.0
+                  equity: 10250.5
+                  profit: 250.5
+                  margin_level: 5125.25
+                  open_positions: 3
+                  drawdown_pct: 2.5
+                  daily_pnl: 150.0
+                  floating_pnl: 100.5
+                  open_order_count: 3
+                  exposure_lots: 0.3
+                  created_at: "2026-01-15T10:30:00+00:00"
+              meta:
+                count: 1
+                pagination:
+                  total: 50
+                  page: 1
+                  per_page: 50
+                  total_pages: 1
+      "400":
+        description: Missing or invalid account_id
+      "403":
+        description: Insufficient permissions (non-root user)
+
 store:
   post:
     tags: [Snapshots]

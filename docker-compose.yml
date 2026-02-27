@@ -54,6 +54,7 @@ services:
         condition: service_healthy
     networks:
       - backend
+      - horizon5
 
   horizon-mt-api-scheduler:
     container_name: horizon-mt-api-scheduler
@@ -81,3 +82,5 @@ volumes:
 networks:
   backend:
     driver: bridge
+  horizon5:
+    external: true

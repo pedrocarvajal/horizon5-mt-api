@@ -17,9 +17,9 @@ tags:
   - name: API Keys
     description: API key management. Root users see all keys; regular users see only their own.
   - name: Accounts
-    description: Trading account upsert
+    description: Trading account listing and upsert
   - name: Strategies
-    description: Trading strategy upsert
+    description: Trading strategy listing and upsert
   - name: Events
     description: Event management (keys, push, consume, ack, history, response)
   - name: Media
@@ -765,6 +765,42 @@ paths:
           description: File deleted
         '404':
           description: File not found
+  /api/v1/accounts/:
+    get:
+      tags:
+        - Accounts
+      summary: List all accounts
+      description: |
+        Returns all trading accounts in the system.
+
+        **Permissions:** `root` only
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - id: 12345678
+                    user_id: 550e8400-e29b-41d4-a716-446655440000
+                    user_email: user@example.com
+                    broker: ICMarkets
+                    server: ICMarketsSC-Demo
+                    currency: USD
+                    leverage: 500
+                    balance: '10000.00'
+                    equity: '10250.50'
+                    margin: '200.00'
+                    free_margin: '10050.50'
+                    profit: '250.50'
+                    margin_level: '5125.25'
+                    created_at: '2026-01-15T10:30:00+00:00'
+                    updated_at: '2026-01-15T12:00:00+00:00'
+                meta:
+                  count: 1
+        '403':
+          description: Insufficient permissions (non-root user)
   /api/v1/account/:
     post:
       tags:
@@ -824,6 +860,36 @@ paths:
                   id: 12345678
         '403':
           description: Account belongs to another user
+  /api/v1/strategies/:
+    get:
+      tags:
+        - Strategies
+      summary: List all strategies
+      description: |
+        Returns all trading strategies in the system.
+
+        **Permissions:** `root` only
+      responses:
+        '200':
+          description: List of strategies
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    account_id: 12345678
+                    symbol: EURUSD
+                    prefix: EU
+                    name: Euro Scalper v2
+                    magic_number: 100001
+                    balance: '5000.00'
+                    created_at: '2026-01-15T10:30:00+00:00'
+                    updated_at: '2026-01-15T12:00:00+00:00'
+                meta:
+                  count: 1
+        '403':
+          description: Insufficient permissions (non-root user)
   /api/v1/strategy/:
     post:
       tags:
@@ -1013,6 +1079,71 @@ paths:
                 success: true
         '403':
           description: Account belongs to another user
+  /api/v1/account-snapshots/:
+    get:
+      tags:
+        - Snapshots
+      summary: List account snapshots
+      description: |
+        Returns paginated snapshots for a given account, ordered by `created_at` descending.
+
+        **Permissions:** `root` only
+      parameters:
+        - name: account_id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: The account ID to retrieve snapshots for.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number.
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of items per page.
+      responses:
+        '200':
+          description: List of account snapshots
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - id: 6789abcdef012345
+                    account_id: 12345678
+                    balance: 10000
+                    equity: 10250.5
+                    profit: 250.5
+                    margin_level: 5125.25
+                    open_positions: 3
+                    drawdown_pct: 2.5
+                    daily_pnl: 150
+                    floating_pnl: 100.5
+                    open_order_count: 3
+                    exposure_lots: 0.3
+                    created_at: '2026-01-15T10:30:00+00:00'
+                meta:
+                  count: 1
+                  pagination:
+                    total: 50
+                    page: 1
+                    per_page: 50
+                    total_pages: 1
+        '400':
+          description: Missing or invalid account_id
+        '403':
+          description: Insufficient permissions (non-root user)
   /api/v1/account-snapshot/:
     post:
       tags:
@@ -1050,6 +1181,76 @@ paths:
                 success: true
         '403':
           description: Account belongs to another user
+  /api/v1/strategy-snapshots/:
+    get:
+      tags:
+        - Snapshots
+      summary: List strategy snapshots
+      description: |
+        Returns paginated snapshots for a given strategy, ordered by `created_at` descending.
+        Optionally filter by `account_id`.
+
+        **Permissions:** `root` only
+      parameters:
+        - name: strategy_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The strategy ID to retrieve snapshots for.
+        - name: account_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Optional account ID filter.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number.
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of items per page.
+      responses:
+        '200':
+          description: List of strategy snapshots
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - id: 6789abcdef012345
+                    account_id: 12345678
+                    strategy_id: 550e8400-e29b-41d4-a716-446655440000
+                    nav: 5250
+                    drawdown_pct: 1.25
+                    daily_pnl: 75
+                    floating_pnl: 50
+                    open_order_count: 2
+                    exposure_lots: 0.2
+                    created_at: '2026-01-15T10:30:00+00:00'
+                meta:
+                  count: 1
+                  pagination:
+                    total: 50
+                    page: 1
+                    per_page: 50
+                    total_pages: 1
+        '400':
+          description: Missing or invalid strategy_id
+        '403':
+          description: Insufficient permissions (non-root user)
   /api/v1/strategy-snapshot/:
     post:
       tags:

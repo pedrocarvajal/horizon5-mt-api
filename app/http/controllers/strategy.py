@@ -7,15 +7,26 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from app.http.controllers.base import BaseController
-from app.http.permissions.role import IsProducerOrRoot
+from app.http.permissions.role import IsProducerOrRoot, IsRoot
 from app.http.requests.strategy.upsert_strategy import UpsertStrategyRequestSerializer
 from app.models import Account, Strategy
 
 
 class StrategyController(BaseController):
     permissions: ClassVar[dict] = {
+        "index": [IsRoot],
         "upsert": [IsProducerOrRoot],
     }
+
+    @action(detail=False, methods=["get"], url_path="")
+    def index(self, _request: Request) -> Response:
+        strategies = Strategy.objects.select_related("account").all()
+        data = [self._serialize_strategy(strategy) for strategy in strategies]
+
+        return self.reply(
+            data=data,
+            meta={"count": len(data)},
+        )
 
     @action(detail=False, methods=["post"], url_path="")
     def upsert(self, request: Request) -> Response:
@@ -45,3 +56,17 @@ class StrategyController(BaseController):
             data={"id": str(strategy.id)},
             status_code=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
+
+    @staticmethod
+    def _serialize_strategy(strategy: Strategy) -> dict:
+        return {
+            "id": str(strategy.id),
+            "account_id": strategy.account_id,
+            "symbol": strategy.symbol,
+            "prefix": strategy.prefix,
+            "name": strategy.name,
+            "magic_number": strategy.magic_number,
+            "balance": str(strategy.balance),
+            "created_at": strategy.created_at.isoformat(),
+            "updated_at": strategy.updated_at.isoformat(),
+        }
