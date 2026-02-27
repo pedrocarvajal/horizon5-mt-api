@@ -41,6 +41,12 @@ paths:
     $ref: "paths/health.yaml#/health"
   /api/v1/auth/login/:
     $ref: "paths/auth.yaml#/login"
+  /api/v1/auth/refresh/:
+    $ref: "paths/auth.yaml#/refresh"
+  /api/v1/auth/logout/:
+    $ref: "paths/auth.yaml#/logout"
+  /api/v1/auth/me/:
+    $ref: "paths/auth.yaml#/me"
   /api/v1/api-keys/:
     $ref: "paths/api_keys.yaml#/list"
   /api/v1/api-key/:

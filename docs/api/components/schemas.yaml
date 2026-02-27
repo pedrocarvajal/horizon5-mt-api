@@ -11,6 +11,69 @@ SuccessEnvelope:
     meta:
       type: object
 
+TokenPairResponse:
+  type: object
+  required: [success, data]
+  properties:
+    success:
+      type: boolean
+      const: true
+    data:
+      type: object
+      required: [access, refresh, expires_at]
+      properties:
+        access:
+          type: string
+          description: Short-lived JWT access token.
+        refresh:
+          type: string
+          description: Long-lived JWT refresh token.
+        expires_at:
+          type: integer
+          description: Unix timestamp (seconds) when the access token expires.
+
+RefreshRequest:
+  type: object
+  required: [refresh]
+  properties:
+    refresh:
+      type: string
+      minLength: 1
+      description: The refresh token to exchange.
+
+LogoutRequest:
+  type: object
+  required: [refresh]
+  properties:
+    refresh:
+      type: string
+      minLength: 1
+      description: The refresh token to blacklist.
+
+UserProfile:
+  type: object
+  required: [success, data]
+  properties:
+    success:
+      type: boolean
+      const: true
+    data:
+      type: object
+      required: [id, email, role, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [root, platform, producer]
+        created_at:
+          type: string
+          format: date-time
+
 LoginWithCredentials:
   type: object
   required: [email, password]

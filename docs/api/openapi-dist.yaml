@@ -73,7 +73,7 @@ paths:
         - Auth
       summary: Login
       description: |
-        Authenticates a user and returns a JWT access token.
+        Authenticates a user and returns a JWT access/refresh token pair.
 
         Supports two authentication modes (mutually exclusive):
         - **Email/Password:** Provide `email` and `password` fields.
@@ -110,14 +110,114 @@ paths:
           description: Login successful
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPairResponse'
               example:
                 success: true
                 data:
                   access: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  refresh: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expires_at: 1772177505
         '401':
           description: Invalid credentials or inactive account
         '403':
           description: IP not allowed (API key mode only)
+  /api/v1/auth/refresh/:
+    post:
+      tags:
+        - Auth
+      summary: Refresh token
+      description: |
+        Exchanges a valid refresh token for a new access/refresh pair.
+        The old refresh token is blacklisted (rotation).
+
+        **Permissions:** Public (no Bearer token required).
+
+        **Rate limiting:** 10 requests / 60 seconds per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            example:
+              refresh: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPairResponse'
+              example:
+                success: true
+                data:
+                  access: eyJ...(new)...
+                  refresh: eyJ...(new, rotated)...
+                  expires_at: 1772178405
+        '401':
+          description: Refresh token is invalid, expired, or blacklisted
+          content:
+            application/json:
+              example:
+                success: false
+                message: Token is invalid or expired
+        '429':
+          description: Rate limit exceeded
+  /api/v1/auth/logout/:
+    post:
+      tags:
+        - Auth
+      summary: Logout
+      description: |
+        Invalidates the refresh token server-side by blacklisting it.
+        Returns success even if the token is already blacklisted (idempotent).
+
+        **Permissions:** Authenticated (Bearer token required).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+            example:
+              refresh: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              example:
+                success: true
+                message: Logged out successfully
+        '401':
+          description: Authentication credentials were not provided
+  /api/v1/auth/me/:
+    get:
+      tags:
+        - Auth
+      summary: Current user profile
+      description: |
+        Returns the authenticated user's profile.
+
+        **Permissions:** Authenticated (Bearer token required).
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+              example:
+                success: true
+                data:
+                  id: 4cc3a1bf-76b5-41ee-931e-9afceeea96a1
+                  email: root@mail.co
+                  role: root
+                  created_at: '2025-01-15T10:30:00+00:00'
+        '401':
+          description: Authentication credentials were not provided
   /api/v1/api-keys/:
     get:
       tags:
@@ -1049,6 +1149,81 @@ components:
           minLength: 1
           maxLength: 256
           description: Plaintext API key.
+    TokenPairResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required:
+            - access
+            - refresh
+            - expires_at
+          properties:
+            access:
+              type: string
+              description: Short-lived JWT access token.
+            refresh:
+              type: string
+              description: Long-lived JWT refresh token.
+            expires_at:
+              type: integer
+              description: Unix timestamp (seconds) when the access token expires.
+    RefreshRequest:
+      type: object
+      required:
+        - refresh
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: The refresh token to exchange.
+    LogoutRequest:
+      type: object
+      required:
+        - refresh
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: The refresh token to blacklist.
+    UserProfile:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required:
+            - id
+            - email
+            - role
+            - created_at
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+              enum:
+                - root
+                - platform
+                - producer
+            created_at:
+              type: string
+              format: date-time
     CreateApiKeyRequest:
       type: object
       required:

@@ -13,6 +13,8 @@ class TestLogin:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["success"] is True
         assert "access" in response.data["data"]
+        assert "refresh" in response.data["data"]
+        assert "expires_at" in response.data["data"]
 
     def test_should_return_valid_jwt_access_token(self, api_client, login_url, active_user):
         response = api_client.post(login_url, {"email": active_user.email, "password": TEST_PASSWORD})
@@ -20,6 +22,19 @@ class TestLogin:
         token = response.data["data"]["access"]
         parts = token.split(".")
         assert len(parts) == 3
+
+    def test_should_return_valid_jwt_refresh_token(self, api_client, login_url, active_user):
+        response = api_client.post(login_url, {"email": active_user.email, "password": TEST_PASSWORD})
+
+        token = response.data["data"]["refresh"]
+        parts = token.split(".")
+        assert len(parts) == 3
+
+    def test_should_return_expires_at_as_integer(self, api_client, login_url, active_user):
+        response = api_client.post(login_url, {"email": active_user.email, "password": TEST_PASSWORD})
+
+        assert isinstance(response.data["data"]["expires_at"], int)
+        assert response.data["data"]["expires_at"] > 0
 
     def test_should_return_401_when_email_does_not_exist(self, api_client, login_url):
         response = api_client.post(login_url, {"email": "unknown@test.co", "password": TEST_PASSWORD})

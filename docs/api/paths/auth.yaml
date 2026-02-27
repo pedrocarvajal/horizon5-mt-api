@@ -3,7 +3,7 @@ login:
     tags: [Auth]
     summary: Login
     description: |
-      Authenticates a user and returns a JWT access token.
+      Authenticates a user and returns a JWT access/refresh token pair.
 
       Supports two authentication modes (mutually exclusive):
       - **Email/Password:** Provide `email` and `password` fields.
@@ -40,11 +40,111 @@ login:
         description: Login successful
         content:
           application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/TokenPairResponse"
             example:
               success: true
               data:
                 access: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                expires_at: 1772177505
       "401":
         description: Invalid credentials or inactive account
       "403":
         description: IP not allowed (API key mode only)
+
+refresh:
+  post:
+    tags: [Auth]
+    summary: Refresh token
+    description: |
+      Exchanges a valid refresh token for a new access/refresh pair.
+      The old refresh token is blacklisted (rotation).
+
+      **Permissions:** Public (no Bearer token required).
+
+      **Rate limiting:** 10 requests / 60 seconds per IP.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/RefreshRequest"
+          example:
+            refresh: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    responses:
+      "200":
+        description: Token refreshed successfully
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/TokenPairResponse"
+            example:
+              success: true
+              data:
+                access: "eyJ...(new)..."
+                refresh: "eyJ...(new, rotated)..."
+                expires_at: 1772178405
+      "401":
+        description: Refresh token is invalid, expired, or blacklisted
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Token is invalid or expired"
+      "429":
+        description: Rate limit exceeded
+
+logout:
+  post:
+    tags: [Auth]
+    summary: Logout
+    description: |
+      Invalidates the refresh token server-side by blacklisting it.
+      Returns success even if the token is already blacklisted (idempotent).
+
+      **Permissions:** Authenticated (Bearer token required).
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/LogoutRequest"
+          example:
+            refresh: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    responses:
+      "200":
+        description: Logged out successfully
+        content:
+          application/json:
+            example:
+              success: true
+              message: "Logged out successfully"
+      "401":
+        description: Authentication credentials were not provided
+
+me:
+  get:
+    tags: [Auth]
+    summary: Current user profile
+    description: |
+      Returns the authenticated user's profile.
+
+      **Permissions:** Authenticated (Bearer token required).
+    responses:
+      "200":
+        description: User profile
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/UserProfile"
+            example:
+              success: true
+              data:
+                id: "4cc3a1bf-76b5-41ee-931e-9afceeea96a1"
+                email: "root@mail.co"
+                role: "root"
+                created_at: "2025-01-15T10:30:00+00:00"
+      "401":
+        description: Authentication credentials were not provided

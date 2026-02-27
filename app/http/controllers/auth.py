@@ -1,27 +1,37 @@
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from app.http.controllers.base import BaseController
 from app.http.middleware.login_throttle import LoginThrottle
+from app.http.middleware.refresh_throttle import RefreshThrottle
 from app.http.requests.auth.login import LoginRequestSerializer
+from app.http.requests.auth.logout import LogoutRequestSerializer
+from app.http.requests.auth.refresh import RefreshRequestSerializer
 from app.models import ApiKey
+from app.models.user import User
 
 
 class AuthController(BaseController):
     permissions: ClassVar[dict] = {
         "login": [AllowAny],
+        "refresh": [AllowAny],
+        "logout": [IsAuthenticated],
+        "me": [IsAuthenticated],
     }
 
     throttles: ClassVar[dict] = {
         "login": [LoginThrottle],
+        "refresh": [RefreshThrottle],
     }
 
     @action(detail=False, methods=["post"], url_path="login")
@@ -60,13 +70,8 @@ class AuthController(BaseController):
             )
 
         LoginThrottle.clear_login_attempts(email)
-        token = AccessToken.for_user(user)
 
-        return self.reply(
-            data={
-                "access": str(token),
-            },
-        )
+        return self.reply(data=self._build_token_data(user))
 
     def _login_with_api_key(self, request, raw_key: str) -> Response:
         ip = self._get_client_ip(request)
@@ -101,13 +106,72 @@ class AuthController(BaseController):
             )
 
         ApiKey.objects.filter(pk=api_key.pk).update(last_used_at=timezone.now())
-        token = AccessToken.for_user(user)
+
+        return self.reply(data=self._build_token_data(user))
+
+    @action(detail=False, methods=["post"], url_path="refresh")
+    def refresh(self, request) -> Response:
+        serializer = RefreshRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            with transaction.atomic():
+                old_refresh = RefreshToken(serializer.validated_data["refresh"])
+                old_refresh.blacklist()
+
+                user = User.objects.get(id=old_refresh["user_id"])
+                new_refresh = RefreshToken.for_user(user)
+                new_access = new_refresh.access_token
+
+            return self.reply(
+                data={
+                    "access": str(new_access),
+                    "refresh": str(new_refresh),
+                    "expires_at": int(new_access["exp"]),
+                },
+            )
+        except TokenError:
+            return self.reply(
+                message="Token is invalid or expired",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+            )
+
+    @action(detail=False, methods=["post"], url_path="logout")
+    def logout(self, request) -> Response:
+        serializer = LogoutRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            token = RefreshToken(serializer.validated_data["refresh"])
+            token.blacklist()
+        except TokenError:
+            pass
+
+        return self.reply(message="Logged out successfully")
+
+    @action(detail=False, methods=["get"], url_path="me")
+    def me(self, request) -> Response:
+        user = cast(User, request.user)
 
         return self.reply(
             data={
-                "access": str(token),
+                "id": str(user.pk),
+                "email": user.email,
+                "role": user.role,
+                "created_at": user.created_at.isoformat(),
             },
         )
+
+    @staticmethod
+    def _build_token_data(user) -> dict:
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        return {
+            "access": str(access),
+            "refresh": str(refresh),
+            "expires_at": int(access["exp"]),
+        }
 
     def _get_client_ip(self, request) -> str:
         num_proxies = getattr(settings, "NUM_PROXIES", 0)

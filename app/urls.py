@@ -14,6 +14,9 @@ from app.routing import Route
 urlpatterns = Route.collect(
     Route.prefix("auth").group(
         Route.post("login/", AuthController, "login"),
+        Route.post("refresh/", AuthController, "refresh"),
+        Route.post("logout/", AuthController, "logout"),
+        Route.get("me/", AuthController, "me"),
     ),
     Route.prefix("api-keys").group(
         Route.get("", ApiKeyController, "index"),
