@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
+from app.http.requests.list_request import ListRequestSerializer
 
-class ListAccountSnapshotRequestSerializer(serializers.Serializer):
+
+class ListAccountSnapshotRequestSerializer(ListRequestSerializer):
     account_id = serializers.IntegerField()
-    page = serializers.IntegerField(default=1, min_value=1)
-    per_page = serializers.IntegerField(default=50, min_value=1, max_value=100)

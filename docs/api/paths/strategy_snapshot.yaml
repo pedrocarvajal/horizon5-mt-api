@@ -38,6 +38,20 @@ list:
           maximum: 100
           default: 50
         description: Number of items per page.
+      - name: order_by
+        in: query
+        required: false
+        schema:
+          type: string
+          default: "-created_at"
+          enum:
+            - nav
+            - "-nav"
+            - drawdown_pct
+            - "-drawdown_pct"
+            - created_at
+            - "-created_at"
+        description: Column to sort by. Prefix with `-` for descending order.
     responses:
       "200":
         description: List of strategy snapshots
@@ -63,6 +77,11 @@ list:
                   page: 1
                   per_page: 50
                   total_pages: 1
+                filterable_columns: []
+                orderable_columns:
+                  - nav
+                  - drawdown_pct
+                  - created_at
       "400":
         description: Missing or invalid strategy_id
       "403":

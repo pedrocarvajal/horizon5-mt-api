@@ -1,3 +1,5 @@
+import os
+
 from django.core.management.base import BaseCommand
 
 from app.enums import SystemRole
@@ -6,19 +8,24 @@ from app.models.user import User
 
 SEED_DATA = [
     {
-        "email": "root@mail.co",
-        "password": "123456789*",
+        "email": "h5-api@mail.co",
+        "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
         "role": SystemRole.ROOT,
     },
     {
-        "email": "platform@mail.co",
-        "password": "123456789*",
+        "email": "h5-root@mail.co",
+        "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
+        "role": SystemRole.ROOT,
+    },
+    {
+        "email": "example-platform@mail.co",
+        "password": os.environ.get("SEED_PLATFORM_PASSWORD", ""),
         "role": SystemRole.PLATFORM,
         "accounts": [200000001],
     },
     {
-        "email": "producer@mail.co",
-        "password": "123456789*",
+        "email": "example-producer@mail.co",
+        "password": os.environ.get("SEED_PRODUCER_PASSWORD", ""),
         "role": SystemRole.PRODUCER,
         "accounts": [200000001],
     },

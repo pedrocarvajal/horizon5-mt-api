@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
+from app.http.requests.list_request import ListRequestSerializer
 
-class ListStrategySnapshotRequestSerializer(serializers.Serializer):
+
+class ListStrategySnapshotRequestSerializer(ListRequestSerializer):
     strategy_id = serializers.UUIDField()
     account_id = serializers.IntegerField(required=False)
-    page = serializers.IntegerField(default=1, min_value=1)
-    per_page = serializers.IntegerField(default=50, min_value=1, max_value=100)

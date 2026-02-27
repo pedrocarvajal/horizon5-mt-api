@@ -163,3 +163,50 @@ class TestListStrategySnapshots:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data["success"] is False
+
+    def test_should_order_by_nav_ascending(self, root_client):
+        create_snapshot(nav=300.0)
+        create_snapshot(nav=100.0)
+        create_snapshot(nav=200.0)
+
+        response = root_client.get(URL, {"strategy_id": STRATEGY_ID, "order_by": "nav"})
+
+        navs = [s["nav"] for s in response.data["data"]]
+        assert navs == [100.0, 200.0, 300.0]
+
+    def test_should_order_by_nav_descending(self, root_client):
+        create_snapshot(nav=100.0)
+        create_snapshot(nav=300.0)
+        create_snapshot(nav=200.0)
+
+        response = root_client.get(URL, {"strategy_id": STRATEGY_ID, "order_by": "-nav"})
+
+        navs = [s["nav"] for s in response.data["data"]]
+        assert navs == [300.0, 200.0, 100.0]
+
+    def test_should_use_default_order_by_created_at_descending(self, root_client):
+        create_snapshot(nav=100.0)
+        create_snapshot(nav=200.0)
+        create_snapshot(nav=300.0)
+
+        response = root_client.get(URL, {"strategy_id": STRATEGY_ID})
+
+        navs = [s["nav"] for s in response.data["data"]]
+        assert navs == [300.0, 200.0, 100.0]
+
+    def test_should_return_400_when_order_by_column_is_invalid(self, root_client):
+        response = root_client.get(URL, {"strategy_id": STRATEGY_ID, "order_by": "invalid_column"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_should_return_400_when_filter_by_column_is_invalid(self, root_client):
+        response = root_client.get(URL, {"strategy_id": STRATEGY_ID, "filter_by": "invalid", "filter_value": "100"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_should_include_filterable_and_orderable_columns_in_meta(self, root_client):
+        response = root_client.get(URL, {"strategy_id": STRATEGY_ID})
+
+        meta = response.data["meta"]
+        assert meta["filterable_columns"] == []
+        assert meta["orderable_columns"] == ["nav", "drawdown_pct", "created_at"]
