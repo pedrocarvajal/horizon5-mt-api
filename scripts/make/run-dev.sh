@@ -10,8 +10,11 @@ log_title "STARTING DEV ENVIRONMENT"
 log_info "Starting database services..."
 docker_compose up -d horizon-mt-api-postgres horizon-mt-api-mongodb
 
-log_info "Waiting for databases to be healthy..."
-docker_compose up horizon-mt-api-migrate
+log_info "Running database migrations..."
+docker_compose run --rm horizon-mt-api-web uv run python manage.py migrate
 
-log_info "Running Django development server..."
-uv run python manage.py runserver 0.0.0.0:8000
+log_info "Starting application services..."
+docker_compose up -d horizon-mt-api-web horizon-mt-api-scheduler
+
+log_info "Development server running on http://localhost:8000"
+docker_compose logs -f horizon-mt-api-web
