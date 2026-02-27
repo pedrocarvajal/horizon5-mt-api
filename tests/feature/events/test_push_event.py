@@ -1,5 +1,3 @@
-import uuid
-
 import pytest
 from rest_framework import status
 
@@ -38,8 +36,8 @@ class TestPushEvent:
     def test_should_create_event_in_database(self, producer_client, producer_account, producer_user):
         producer_client.post(push_url(producer_account.id), VALID_PAYLOAD, format="json")
 
-        assert Event.count({"account_id": str(producer_account.id)}) == 1
-        event = Event.find_one({"account_id": str(producer_account.id)})
+        assert Event.count({"account_id": producer_account.id}) == 1
+        event = Event.find_one({"account_id": producer_account.id})
         assert event["user_id"] == str(producer_user.pk)
         assert event["status"] == EventStatus.PENDING
         assert event["consumer_id"] is None
@@ -107,7 +105,7 @@ class TestPushEvent:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_should_return_400_when_account_does_not_exist(self, root_client):
-        response = root_client.post(push_url(uuid.uuid4()), VALID_PAYLOAD, format="json")
+        response = root_client.post(push_url(999999999), VALID_PAYLOAD, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 

@@ -1,4 +1,3 @@
-import uuid
 from datetime import timedelta
 
 import pytest
@@ -31,7 +30,7 @@ class TestConsumeEvents:
 
         platform_client.post(consume_url(platform_account.id))
 
-        event = Event.find_one({"account_id": str(platform_account.id)})
+        event = Event.find_one({"account_id": platform_account.id})
         assert event["status"] == EventStatus.DELIVERED
         assert event["consumer_id"] == str(platform_user.pk)
         assert event["delivered_at"] is not None
@@ -110,7 +109,7 @@ class TestConsumeEvents:
         assert response.data["meta"]["count"] == 0
 
     def test_should_return_400_when_account_does_not_exist(self, root_client):
-        response = root_client.post(consume_url(uuid.uuid4()))
+        response = root_client.post(consume_url(999999999))
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 

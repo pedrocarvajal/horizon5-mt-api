@@ -1,5 +1,3 @@
-import uuid
-
 import pytest
 from rest_framework import status
 
@@ -45,7 +43,7 @@ class TestEventResponse:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_should_return_400_when_account_does_not_exist(self, root_client):
-        response = root_client.get(response_url(uuid.uuid4(), fake_object_id()))
+        response = root_client.get(response_url(999999999, fake_object_id()))
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 

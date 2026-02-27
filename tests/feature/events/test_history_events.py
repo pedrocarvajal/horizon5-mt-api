@@ -1,4 +1,3 @@
-import uuid
 from datetime import timedelta
 
 import pytest
@@ -80,7 +79,7 @@ class TestHistoryEvents:
         assert response.data["data"] == []
 
     def test_should_return_400_when_account_does_not_exist(self, root_client):
-        response = root_client.get(history_url(uuid.uuid4()))
+        response = root_client.get(history_url(999999999))
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
