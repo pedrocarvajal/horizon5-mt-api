@@ -29,7 +29,7 @@ class TestUploadMedia:
         assert response.data["success"] is True
         data = response.data["data"]
         assert "id" in data
-        assert data["account_id"] == str(account.id)
+        assert data["account_id"] == account.id
         assert data["original_name"] == "test.png"
         assert data["content_type"] == "image/png"
         assert data["size"] > 0
