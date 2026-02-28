@@ -1,4 +1,4 @@
-list:
+snapshots:
   get:
     tags: [Snapshots]
     summary: List strategy snapshots
@@ -86,8 +86,6 @@ list:
         description: Missing or invalid strategy_id
       "403":
         description: Insufficient permissions (non-root user)
-
-store:
   post:
     tags: [Snapshots]
     summary: Store strategy snapshot

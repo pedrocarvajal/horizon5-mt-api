@@ -85,14 +85,10 @@ paths:
     $ref: "paths/order.yaml#/upsert"
   /api/v1/log/:
     $ref: "paths/log.yaml#/store"
-  /api/v1/account-snapshots/:
-    $ref: "paths/account_snapshot.yaml#/list"
-  /api/v1/account-snapshot/:
-    $ref: "paths/account_snapshot.yaml#/store"
-  /api/v1/strategy-snapshots/:
-    $ref: "paths/strategy_snapshot.yaml#/list"
-  /api/v1/strategy-snapshot/:
-    $ref: "paths/strategy_snapshot.yaml#/store"
+  /api/v1/accounts/snapshots/:
+    $ref: "paths/account_snapshot.yaml#/snapshots"
+  /api/v1/strategies/snapshots/:
+    $ref: "paths/strategy_snapshot.yaml#/snapshots"
 
 components:
   securitySchemes:

@@ -3,7 +3,7 @@ from rest_framework import status
 
 from app.collections.account_snapshot import AccountSnapshot
 
-URL = "/api/v1/account-snapshots/"
+URL = "/api/v1/accounts/snapshots/"
 
 ACCOUNT_ID = 123456
 

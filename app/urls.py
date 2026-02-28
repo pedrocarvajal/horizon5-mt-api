@@ -13,6 +13,7 @@ from app.http.controllers.strategy_snapshot import StrategySnapshotController
 from app.routing import Route
 
 urlpatterns = Route.collect(
+    Route.get("health/", HealthController, "check"),
     Route.prefix("auth").group(
         Route.post("login/", AuthController, "login"),
         Route.post("refresh/", AuthController, "refresh"),
@@ -28,8 +29,12 @@ urlpatterns = Route.collect(
         Route.patch("<uuid:id>/", ApiKeyController, "update"),
         Route.delete("<uuid:id>/", ApiKeyController, "destroy"),
     ),
-    Route.prefix("events").group(
-        Route.get("keys/", EventController, "keys"),
+    Route.prefix("accounts").group(
+        Route.get("", AccountController, "index"),
+        Route.match({"get": "index", "post": "store"}, "snapshots/", AccountSnapshotController),
+    ),
+    Route.prefix("account").group(
+        Route.post("", AccountController, "upsert"),
     ),
     Route.prefix("account/<int:id>/events").group(
         Route.post("", EventController, "push"),
@@ -45,17 +50,15 @@ urlpatterns = Route.collect(
         Route.get("<str:file_name>/download/", MediaController, "download"),
         Route.delete("<str:file_name>/", MediaController, "destroy"),
     ),
-    Route.prefix("accounts").group(
-        Route.get("", AccountController, "index"),
-    ),
-    Route.prefix("account").group(
-        Route.post("", AccountController, "upsert"),
-    ),
     Route.prefix("strategies").group(
         Route.get("", StrategyController, "index"),
+        Route.match({"get": "index", "post": "store"}, "snapshots/", StrategySnapshotController),
     ),
     Route.prefix("strategy").group(
         Route.post("", StrategyController, "upsert"),
+    ),
+    Route.prefix("events").group(
+        Route.get("keys/", EventController, "keys"),
     ),
     Route.prefix("heartbeat").group(
         Route.post("", HeartbeatController, "store"),
@@ -66,17 +69,4 @@ urlpatterns = Route.collect(
     Route.prefix("log").group(
         Route.post("", LogController, "store"),
     ),
-    Route.prefix("account-snapshots").group(
-        Route.get("", AccountSnapshotController, "index"),
-    ),
-    Route.prefix("account-snapshot").group(
-        Route.post("", AccountSnapshotController, "store"),
-    ),
-    Route.prefix("strategy-snapshots").group(
-        Route.get("", StrategySnapshotController, "index"),
-    ),
-    Route.prefix("strategy-snapshot").group(
-        Route.post("", StrategySnapshotController, "store"),
-    ),
-    Route.get("health/", HealthController, "check"),
 )

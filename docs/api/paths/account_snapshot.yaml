@@ -1,4 +1,4 @@
-list:
+snapshots:
   get:
     tags: [Snapshots]
     summary: List account snapshots
@@ -87,8 +87,6 @@ list:
         description: Missing or invalid account_id
       "403":
         description: Insufficient permissions (non-root user)
-
-store:
   post:
     tags: [Snapshots]
     summary: Store account snapshot

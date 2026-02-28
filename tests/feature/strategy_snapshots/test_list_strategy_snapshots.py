@@ -5,7 +5,7 @@ from rest_framework import status
 
 from app.collections.strategy_snapshot import StrategySnapshot
 
-URL = "/api/v1/strategy-snapshots/"
+URL = "/api/v1/strategies/snapshots/"
 
 STRATEGY_ID = str(uuid.uuid4())
 
