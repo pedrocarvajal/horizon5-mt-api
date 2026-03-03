@@ -34,10 +34,15 @@ upsert:
     summary: Upsert strategy
     description: |
       Creates or updates a trading strategy. The strategy is linked to an account
-      owned by the authenticated user.
+      owned by the authenticated user. All fields are required on every request.
 
-      If a strategy with the given `id` already exists and its account belongs to
-      the authenticated user, it is updated. Otherwise, a new strategy is created.
+      The endpoint performs two ownership checks before writing:
+      1. The `account_id` must reference an account owned by the authenticated user.
+      2. If a strategy with the given `id` already exists, its current account must
+         also belong to the authenticated user.
+
+      When both checks pass, the strategy is created or updated via `update_or_create`
+      using `id` as the lookup and the remaining fields as defaults.
 
       **Permissions:** `root` or `producer`
     requestBody:
@@ -46,14 +51,27 @@ upsert:
         application/json:
           schema:
             $ref: "../components/schemas.yaml#/UpsertStrategyRequest"
-          example:
-            id: "550e8400-e29b-41d4-a716-446655440000"
-            account_id: 12345678
-            symbol: "EURUSD"
-            prefix: "EU"
-            name: "Euro Scalper v2"
-            magic_number: 100001
-            balance: 5000.00
+          examples:
+            create:
+              summary: Create a new strategy
+              value:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                account_id: 12345678
+                symbol: "EURUSD"
+                prefix: "EU"
+                name: "Euro Scalper v2"
+                magic_number: 100001
+                balance: 5000.00
+            update:
+              summary: Update an existing strategy
+              value:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                account_id: 12345678
+                symbol: "EURUSD"
+                prefix: "EU"
+                name: "Euro Scalper v3"
+                magic_number: 100001
+                balance: 7500.00
     responses:
       "201":
         description: Strategy created
@@ -71,5 +89,7 @@ upsert:
               success: true
               data:
                 id: "550e8400-e29b-41d4-a716-446655440000"
+      "400":
+        description: Validation error (missing or invalid fields)
       "403":
-        description: Account or strategy belongs to another user
+        description: Account not owned by user, or existing strategy belongs to another user

@@ -241,7 +241,9 @@ EventKeyEnum:
     - get.order
     - put.order
     - delete.order
-    - get.account
+    - get.account.info
+    - get.klines
+    - get.ticker
     - patch.account.disable
     - patch.account.enable
 
@@ -367,47 +369,36 @@ UpsertOrderRequest:
     signal_price:
       type: number
       format: decimal
-      nullable: true
     open_at_price:
       type: number
       format: decimal
-      nullable: true
     open_price:
       type: number
       format: decimal
-      nullable: true
     close_price:
       type: number
       format: decimal
-      nullable: true
     take_profit:
       type: number
       format: decimal
-      nullable: true
     stop_loss:
       type: number
       format: decimal
-      nullable: true
     profit:
       type: number
       format: decimal
-      nullable: true
     gross_profit:
       type: number
       format: decimal
-      nullable: true
     commission:
       type: number
       format: decimal
-      nullable: true
     swap:
       type: number
       format: decimal
-      nullable: true
     close_reason:
       type: string
       enum: [tp, sl, expert, client, mobile, web, unknown]
-      nullable: true
     signal_at:
       type: string
       format: date-time
@@ -505,24 +496,39 @@ CreateStrategySnapshotRequest:
 
 MediaFile:
   type: object
+  required: [id, account_id, user_id, file_name, original_name, content_type, size, expires_at, created_at]
   properties:
     id:
       type: string
+      format: uuid
     account_id:
-      type: string
+      type: integer
     user_id:
       type: string
+      format: uuid
     file_name:
       type: string
+      description: Unique server-generated file name (UUID + extension).
     original_name:
       type: string
+      description: Original file name provided during upload.
     content_type:
       type: string
+      enum:
+        - image/jpeg
+        - image/png
+        - image/gif
+        - image/webp
+        - application/pdf
+        - text/csv
+        - application/zip
     size:
       type: integer
+      description: File size in bytes.
     expires_at:
       type: string
       format: date-time
+      description: UTC timestamp after which the file can no longer be downloaded.
     created_at:
       type: string
       format: date-time

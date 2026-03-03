@@ -12,7 +12,7 @@ login:
 
       **Permissions:** Public (no authentication required).
 
-      **Rate limiting (email/password mode):**
+      **Rate limiting (LoginThrottle):**
       - Per IP: 5 requests / 60 seconds
       - Per email: 10 requests / 3600 seconds
       - Account lockout: 10 consecutive failures locks the account for 900 seconds
@@ -48,10 +48,60 @@ login:
                 access: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 refresh: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 expires_at: 1772177505
+      "400":
+        description: Validation failed (missing fields or mutually exclusive fields provided)
+        content:
+          application/json:
+            examples:
+              both_modes:
+                summary: Both email/password and api_key provided
+                value:
+                  success: false
+                  message: "Provide either email/password or api_key, not both."
+              no_fields:
+                summary: No authentication fields provided
+                value:
+                  success: false
+                  message: "Provide email/password or api_key."
       "401":
-        description: Invalid credentials or inactive account
+        description: Invalid credentials, invalid API key, inactive/expired API key, or inactive account
+        content:
+          application/json:
+            examples:
+              invalid_credentials:
+                summary: Wrong email or password
+                value:
+                  success: false
+                  message: "Invalid credentials."
+              invalid_api_key:
+                summary: API key not found
+                value:
+                  success: false
+                  message: "Invalid API key."
+              inactive_api_key:
+                summary: API key inactive or expired
+                value:
+                  success: false
+                  message: "API key is inactive or expired."
+              inactive_account:
+                summary: User account is inactive
+                value:
+                  success: false
+                  message: "Account is inactive."
       "403":
         description: IP not allowed (API key mode only)
+        content:
+          application/json:
+            example:
+              success: false
+              message: "IP address not allowed for this API key."
+      "429":
+        description: Rate limit exceeded
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Request was throttled."
 
 refresh:
   post:
@@ -59,11 +109,11 @@ refresh:
     summary: Refresh token
     description: |
       Exchanges a valid refresh token for a new access/refresh pair.
-      The old refresh token is blacklisted (rotation).
+      The old refresh token is blacklisted atomically (rotation).
 
       **Permissions:** Public (no Bearer token required).
 
-      **Rate limiting:** 10 requests / 60 seconds per IP.
+      **Rate limiting (RefreshThrottle):** 10 requests / 60 seconds per IP.
     security: []
     requestBody:
       required: true
@@ -86,8 +136,15 @@ refresh:
                 access: "eyJ...(new)..."
                 refresh: "eyJ...(new, rotated)..."
                 expires_at: 1772178405
+      "400":
+        description: Validation failed (missing refresh field)
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Validation failed."
       "401":
-        description: Refresh token is invalid, expired, or blacklisted
+        description: Refresh token is invalid, expired, or already blacklisted
         content:
           application/json:
             example:
@@ -95,6 +152,11 @@ refresh:
               message: "Token is invalid or expired"
       "429":
         description: Rate limit exceeded
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Request was throttled."
 
 logout:
   post:
@@ -102,7 +164,7 @@ logout:
     summary: Logout
     description: |
       Invalidates the refresh token server-side by blacklisting it.
-      Returns success even if the token is already blacklisted (idempotent).
+      Returns success even if the token is already blacklisted or invalid (idempotent).
 
       **Permissions:** Authenticated (Bearer token required).
     requestBody:
@@ -121,8 +183,20 @@ logout:
             example:
               success: true
               message: "Logged out successfully"
+      "400":
+        description: Validation failed (missing refresh field)
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Validation failed."
       "401":
         description: Authentication credentials were not provided
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Authentication credentials were not provided."
 
 me:
   get:
@@ -148,3 +222,8 @@ me:
                 created_at: "2025-01-15T10:30:00+00:00"
       "401":
         description: Authentication credentials were not provided
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Authentication credentials were not provided."

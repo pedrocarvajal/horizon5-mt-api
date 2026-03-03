@@ -4,7 +4,10 @@ store:
     summary: Store log entry
     description: |
       Records a log entry for a trading account or strategy.
-      The `level` field is free-form (e.g. `info`, `warning`, `error`).
+      The authenticated user must own the account referenced by `account_id`.
+
+      The `level` field is free-form text (e.g. `info`, `warning`, `error`)
+      with a maximum length of 20 characters.
 
       **Permissions:** `root` or `producer`
     requestBody:
@@ -21,12 +24,19 @@ store:
                 strategy_id: "550e8400-e29b-41d4-a716-446655440000"
                 level: "info"
                 message: "Order #12345 opened at 1.10500"
-            error_log:
-              summary: System error log
+            account_error_log:
+              summary: Account-level error without strategy
               value:
                 account_id: 12345678
                 level: "error"
                 message: "Connection to broker lost after 3 retries"
+            strategy_warning_log:
+              summary: Strategy warning log
+              value:
+                account_id: 12345678
+                strategy_id: "660e8400-e29b-41d4-a716-446655440000"
+                level: "warning"
+                message: "Slippage exceeded 2 pips on EURUSD"
     responses:
       "201":
         description: Log entry recorded
@@ -35,4 +45,4 @@ store:
             example:
               success: true
       "403":
-        description: Account belongs to another user
+        description: Account not found or not owned by the authenticated user

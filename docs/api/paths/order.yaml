@@ -8,6 +8,11 @@ upsert:
       If an order with the given `id` already exists and its `account_id` matches,
       it is updated. Otherwise, a new order is created.
 
+      The `account_id` must reference an account owned by the authenticated user.
+      If the order already exists under a different account, the request is rejected.
+
+      Only provided optional fields are written; omitted fields remain unchanged on update.
+
       **Permissions:** `root` or `producer`
     requestBody:
       required: true
@@ -17,7 +22,7 @@ upsert:
             $ref: "../components/schemas.yaml#/UpsertOrderRequest"
           examples:
             new_order:
-              summary: Create a new buy order
+              summary: Open a new buy order
               value:
                 id: "550e8400-e29b-41d4-a716-446655440000"
                 account_id: 12345678
@@ -25,13 +30,14 @@ upsert:
                 symbol: "EURUSD"
                 side: "buy"
                 status: "open"
+                is_market_order: true
                 volume: 0.10
                 open_price: 1.10500
                 stop_loss: 1.10000
                 take_profit: 1.11000
                 opened_at: "2026-02-27T10:30:00Z"
             close_order:
-              summary: Update order to closed
+              summary: Close an existing order
               value:
                 id: "550e8400-e29b-41d4-a716-446655440000"
                 account_id: 12345678
@@ -39,10 +45,28 @@ upsert:
                 side: "buy"
                 status: "closed"
                 volume: 0.10
+                open_price: 1.10500
                 close_price: 1.10800
                 profit: 30.00
+                commission: -3.50
+                swap: -0.80
                 close_reason: "tp"
+                opened_at: "2026-02-27T10:30:00Z"
                 closed_at: "2026-02-27T12:00:00Z"
+            pending_order:
+              summary: Place a pending limit order
+              value:
+                id: "770e8400-e29b-41d4-a716-446655440000"
+                account_id: 12345678
+                strategy_id: "660e8400-e29b-41d4-a716-446655440000"
+                symbol: "GBPUSD"
+                side: "buy"
+                status: "pending"
+                is_market_order: false
+                volume: 0.50
+                open_at_price: 1.26500
+                stop_loss: 1.26000
+                take_profit: 1.27500
     responses:
       "201":
         description: Order created
@@ -60,5 +84,17 @@ upsert:
               success: true
               data:
                 id: "550e8400-e29b-41d4-a716-446655440000"
+      "400":
+        description: Validation failed
+        content:
+          application/json:
+            example:
+              success: false
+              message: "This field is required."
       "403":
-        description: Account belongs to another user
+        description: Account not owned by the user or order belongs to a different account
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Account not found or not owned by you."

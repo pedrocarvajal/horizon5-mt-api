@@ -3,11 +3,16 @@ upload:
     tags: [Media]
     summary: Upload file
     description: |
-      Uploads a file associated with the account. Files are stored with a unique
-      name and expire after the configured expiration period (default 24 hours).
+      Uploads a file associated with the account. Files are stored with a
+      UUID-based name and expire after the configured period (default 24 hours).
 
-      Returns metadata about the uploaded file, including the `file_name` to use
-      for downloading.
+      **Allowed content types:** `image/jpeg`, `image/png`, `image/gif`,
+      `image/webp`, `application/pdf`, `text/csv`, `application/zip`
+
+      **Allowed extensions:** `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.pdf`,
+      `.csv`, `.zip`
+
+      **Max file size:** 1 GB (1 073 741 824 bytes)
 
       **Permissions:** `root` OR account owner with role `root` | `platform`
     parameters:
@@ -23,7 +28,6 @@ upload:
               file:
                 type: string
                 format: binary
-                description: File to upload (max 1 GB)
     responses:
       "201":
         description: File uploaded
@@ -36,14 +40,55 @@ upload:
                   properties:
                     data:
                       $ref: "../components/schemas.yaml#/MediaFile"
+            example:
+              success: true
+              data:
+                id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                account_id: 12345678
+                user_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                file_name: "c9bf9e57-1685-4c89-bafb-ff5af830be8a.pdf"
+                original_name: "trade-report-2026-02.pdf"
+                content_type: "application/pdf"
+                size: 245760
+                expires_at: "2026-03-04T14:30:00Z"
+                created_at: "2026-03-03T14:30:00Z"
+      "422":
+        description: Validation error (invalid file type, size exceeded, or bad file name)
+        content:
+          application/json:
+            examples:
+              size_exceeded:
+                summary: File size exceeds limit
+                value:
+                  success: false
+                  file:
+                    - "File size exceeds the maximum allowed size of 1024 MB."
+              invalid_extension:
+                summary: Disallowed file extension
+                value:
+                  success: false
+                  file:
+                    - "File type '.exe' is not allowed."
+              invalid_content_type:
+                summary: Disallowed content type
+                value:
+                  success: false
+                  file:
+                    - "Content type 'application/x-msdownload' is not allowed."
 
 download:
   get:
     tags: [Media]
     summary: Download file
     description: |
-      Downloads a file by its unique file name. Returns the file as an attachment
-      with the original file name.
+      Downloads a file by its unique file name. Returns the file binary content
+      as an attachment with the original file name in `Content-Disposition`.
+
+      The response `Content-Type` is set to the stored content type for safe
+      types (`image/jpeg`, `image/png`, `image/gif`, `image/webp`,
+      `application/pdf`). All other types are served as `application/octet-stream`.
+
+      The `X-Content-Type-Options: nosniff` header is always set.
 
       Expired files return `410 Gone`.
 
@@ -54,23 +99,70 @@ download:
     responses:
       "200":
         description: File content
+        headers:
+          Content-Disposition:
+            schema:
+              type: string
+            description: 'Attachment with the original file name, e.g. `attachment; filename="report.pdf"`'
+          X-Content-Type-Options:
+            schema:
+              type: string
+              const: nosniff
         content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/gif:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+          application/pdf:
+            schema:
+              type: string
+              format: binary
           application/octet-stream:
             schema:
               type: string
               format: binary
       "404":
-        description: File not found
+        description: File not found (database record missing or file missing from disk)
+        content:
+          application/json:
+            examples:
+              record_not_found:
+                summary: No database record
+                value:
+                  success: false
+                  message: "Not found."
+              disk_not_found:
+                summary: File missing from disk
+                value:
+                  success: false
+                  message: "File not found on disk."
       "410":
         description: File has expired
+        content:
+          application/json:
+            example:
+              success: false
+              message: "File has expired."
 
 destroy:
   delete:
     tags: [Media]
     summary: Delete file
     description: |
-      Deletes a file by its unique file name. Removes both the database record
-      and the file from disk.
+      Deletes a file by its unique file name. Removes the database record and,
+      if present, the file from disk. Empty parent directories are cleaned up.
 
       **Permissions:** `root` OR account owner with role `root` | `platform`
     parameters:
@@ -78,6 +170,11 @@ destroy:
       - $ref: "../components/parameters.yaml#/FileName"
     responses:
       "204":
-        description: File deleted
+        description: File deleted (no response body)
       "404":
         description: File not found
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Not found."

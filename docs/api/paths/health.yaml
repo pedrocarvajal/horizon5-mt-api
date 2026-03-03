@@ -25,7 +25,7 @@ health:
         content:
           application/json:
             example:
-              success: true
+              success: false
               data:
                 status: degraded
                 checks:

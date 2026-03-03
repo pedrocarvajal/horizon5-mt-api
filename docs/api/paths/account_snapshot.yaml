@@ -84,7 +84,7 @@ snapshots:
                   - drawdown_pct
                   - created_at
       "400":
-        description: Missing or invalid account_id
+        description: Validation failed (missing or invalid query parameters)
       "403":
         description: Insufficient permissions (non-root user)
   post:
@@ -120,5 +120,7 @@ snapshots:
           application/json:
             example:
               success: true
+      "400":
+        description: Validation failed (missing or invalid fields)
       "403":
         description: Account belongs to another user

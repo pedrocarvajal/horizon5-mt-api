@@ -61,7 +61,7 @@ paths:
           content:
             application/json:
               example:
-                success: true
+                success: false
                 data:
                   status: degraded
                   checks:
@@ -82,7 +82,7 @@ paths:
 
         **Permissions:** Public (no authentication required).
 
-        **Rate limiting (email/password mode):**
+        **Rate limiting (LoginThrottle):**
         - Per IP: 5 requests / 60 seconds
         - Per email: 10 requests / 3600 seconds
         - Account lockout: 10 consecutive failures locks the account for 900 seconds
@@ -118,10 +118,60 @@ paths:
                   access: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                   refresh: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                   expires_at: 1772177505
+        '400':
+          description: Validation failed (missing fields or mutually exclusive fields provided)
+          content:
+            application/json:
+              examples:
+                both_modes:
+                  summary: Both email/password and api_key provided
+                  value:
+                    success: false
+                    message: Provide either email/password or api_key, not both.
+                no_fields:
+                  summary: No authentication fields provided
+                  value:
+                    success: false
+                    message: Provide email/password or api_key.
         '401':
-          description: Invalid credentials or inactive account
+          description: Invalid credentials, invalid API key, inactive/expired API key, or inactive account
+          content:
+            application/json:
+              examples:
+                invalid_credentials:
+                  summary: Wrong email or password
+                  value:
+                    success: false
+                    message: Invalid credentials.
+                invalid_api_key:
+                  summary: API key not found
+                  value:
+                    success: false
+                    message: Invalid API key.
+                inactive_api_key:
+                  summary: API key inactive or expired
+                  value:
+                    success: false
+                    message: API key is inactive or expired.
+                inactive_account:
+                  summary: User account is inactive
+                  value:
+                    success: false
+                    message: Account is inactive.
         '403':
           description: IP not allowed (API key mode only)
+          content:
+            application/json:
+              example:
+                success: false
+                message: IP address not allowed for this API key.
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              example:
+                success: false
+                message: Request was throttled.
   /api/v1/auth/refresh/:
     post:
       tags:
@@ -129,11 +179,11 @@ paths:
       summary: Refresh token
       description: |
         Exchanges a valid refresh token for a new access/refresh pair.
-        The old refresh token is blacklisted (rotation).
+        The old refresh token is blacklisted atomically (rotation).
 
         **Permissions:** Public (no Bearer token required).
 
-        **Rate limiting:** 10 requests / 60 seconds per IP.
+        **Rate limiting (RefreshThrottle):** 10 requests / 60 seconds per IP.
       security: []
       requestBody:
         required: true
@@ -156,8 +206,15 @@ paths:
                   access: eyJ...(new)...
                   refresh: eyJ...(new, rotated)...
                   expires_at: 1772178405
+        '400':
+          description: Validation failed (missing refresh field)
+          content:
+            application/json:
+              example:
+                success: false
+                message: Validation failed.
         '401':
-          description: Refresh token is invalid, expired, or blacklisted
+          description: Refresh token is invalid, expired, or already blacklisted
           content:
             application/json:
               example:
@@ -165,6 +222,11 @@ paths:
                 message: Token is invalid or expired
         '429':
           description: Rate limit exceeded
+          content:
+            application/json:
+              example:
+                success: false
+                message: Request was throttled.
   /api/v1/auth/logout/:
     post:
       tags:
@@ -172,7 +234,7 @@ paths:
       summary: Logout
       description: |
         Invalidates the refresh token server-side by blacklisting it.
-        Returns success even if the token is already blacklisted (idempotent).
+        Returns success even if the token is already blacklisted or invalid (idempotent).
 
         **Permissions:** Authenticated (Bearer token required).
       requestBody:
@@ -191,8 +253,20 @@ paths:
               example:
                 success: true
                 message: Logged out successfully
+        '400':
+          description: Validation failed (missing refresh field)
+          content:
+            application/json:
+              example:
+                success: false
+                message: Validation failed.
         '401':
           description: Authentication credentials were not provided
+          content:
+            application/json:
+              example:
+                success: false
+                message: Authentication credentials were not provided.
   /api/v1/auth/me/:
     get:
       tags:
@@ -218,6 +292,11 @@ paths:
                   created_at: '2025-01-15T10:30:00+00:00'
         '401':
           description: Authentication credentials were not provided
+          content:
+            application/json:
+              example:
+                success: false
+                message: Authentication credentials were not provided.
   /api/v1/api-keys/:
     get:
       tags:
@@ -235,21 +314,70 @@ paths:
           description: API keys listed
           content:
             application/json:
-              example:
-                success: true
-                data:
-                  - id: 550e8400-e29b-41d4-a716-446655440000
-                    name: Production Key
-                    prefix: a1b2c3d4
-                    allowed_ips:
-                      - 192.168.1.1
-                    is_active: true
-                    is_expired: false
-                    expires_at: null
-                    last_used_at: '2026-02-26T10:30:00Z'
-                    created_at: '2026-02-20T08:00:00Z'
-                meta:
-                  count: 1
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ApiKey'
+                      meta:
+                        type: object
+                        required:
+                          - count
+                        properties:
+                          count:
+                            type: integer
+              examples:
+                regular_user:
+                  summary: Regular user sees own keys
+                  value:
+                    success: true
+                    data:
+                      - id: 550e8400-e29b-41d4-a716-446655440000
+                        name: Production Key
+                        prefix: a1b2c3d4
+                        allowed_ips:
+                          - 192.168.1.1
+                        is_active: true
+                        is_expired: false
+                        expires_at: null
+                        last_used_at: '2026-02-26T10:30:00+00:00'
+                        created_at: '2026-02-20T08:00:00+00:00'
+                    meta:
+                      count: 1
+                root_user:
+                  summary: Root user sees all keys with owner info
+                  value:
+                    success: true
+                    data:
+                      - id: 550e8400-e29b-41d4-a716-446655440000
+                        name: Production Key
+                        prefix: a1b2c3d4
+                        allowed_ips:
+                          - 192.168.1.1
+                        is_active: true
+                        is_expired: false
+                        expires_at: null
+                        last_used_at: '2026-02-26T10:30:00+00:00'
+                        created_at: '2026-02-20T08:00:00+00:00'
+                        user_id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                        user_email: producer@example.com
+                      - id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+                        name: Staging Key
+                        prefix: e5f6a7b8
+                        allowed_ips: []
+                        is_active: true
+                        is_expired: false
+                        expires_at: '2027-01-01T00:00:00+00:00'
+                        last_used_at: null
+                        created_at: '2026-02-18T14:00:00+00:00'
+                        user_id: 9a4f2c8d-3b1e-4d5f-a6c7-8e9f0a1b2c3d
+                        user_email: platform@example.com
+                    meta:
+                      count: 2
   /api/v1/api-key/:
     post:
       tags:
@@ -267,6 +395,19 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateApiKeyRequest'
+            examples:
+              with_ip_restriction:
+                summary: Key restricted to specific IPs
+                value:
+                  name: Production Key
+                  allowed_ips:
+                    - 192.168.1.1
+                    - 10.0.0.1
+                  expires_at: '2027-06-01T00:00:00Z'
+              unrestricted:
+                summary: Key with no IP or expiration restrictions
+                value:
+                  name: Development Key
       responses:
         '201':
           description: API key created
@@ -279,12 +420,17 @@ paths:
                   id: 550e8400-e29b-41d4-a716-446655440000
                   name: Production Key
                   prefix: a1b2c3d4
-                  key: a1b2c3d4e5f6...full_hex_key...
+                  key: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4
                   allowed_ips:
                     - 192.168.1.1
+                    - 10.0.0.1
                   is_active: true
-                  expires_at: null
-                  created_at: '2026-02-26T10:30:00Z'
+                  is_expired: false
+                  expires_at: '2027-06-01T00:00:00+00:00'
+                  last_used_at: null
+                  created_at: '2026-02-26T10:30:00+00:00'
+        '422':
+          description: Validation error
   /api/v1/api-key/{id}/:
     get:
       tags:
@@ -315,9 +461,9 @@ paths:
                   is_active: true
                   is_expired: false
                   expires_at: null
-                  last_used_at: '2026-02-26T10:30:00Z'
-                  created_at: '2026-02-20T08:00:00Z'
-                  updated_at: '2026-02-25T12:00:00Z'
+                  last_used_at: '2026-02-26T10:30:00+00:00'
+                  created_at: '2026-02-20T08:00:00+00:00'
+                  updated_at: '2026-02-25T12:00:00+00:00'
         '404':
           description: API key not found
     patch:
@@ -339,6 +485,26 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateApiKeyRequest'
+            examples:
+              rename:
+                summary: Rename the key
+                value:
+                  name: Updated Key Name
+              deactivate:
+                summary: Deactivate the key
+                value:
+                  is_active: false
+              update_ips_and_expiration:
+                summary: Change IP whitelist and expiration
+                value:
+                  allowed_ips:
+                    - 10.0.0.1
+                    - 10.0.0.2
+                  expires_at: '2027-12-31T23:59:59Z'
+              remove_expiration:
+                summary: Remove expiration (null clears it)
+                value:
+                  expires_at: null
       responses:
         '200':
           description: API key updated
@@ -357,10 +523,12 @@ paths:
                   is_expired: false
                   expires_at: null
                   last_used_at: null
-                  created_at: '2026-02-20T08:00:00Z'
-                  updated_at: '2026-02-26T10:30:00Z'
+                  created_at: '2026-02-20T08:00:00+00:00'
+                  updated_at: '2026-02-26T10:30:00+00:00'
         '404':
           description: API key not found
+        '422':
+          description: Validation error
     delete:
       tags:
         - API Keys
@@ -457,8 +625,14 @@ paths:
                       id:
                         type: integer
                         required: true
-                  - key: get.account
-                    name: GET_ACCOUNT
+                  - key: get.account.info
+                    name: GET_ACCOUNT_INFO
+                    schema: {}
+                  - key: get.klines
+                    name: GET_KLINES
+                    schema: {}
+                  - key: get.ticker
+                    name: GET_TICKER
                     schema: {}
                   - key: patch.account.disable
                     name: PATCH_ACCOUNT_DISABLE
@@ -496,10 +670,10 @@ paths:
                     volume: 0.1
                     stop_loss: 1.08
                     take_profit: 1.12
-              get_account:
+              get_account_info:
                 summary: Request account info
                 value:
-                  key: get.account
+                  key: get.account.info
                   payload: {}
       responses:
         '201':
@@ -513,6 +687,28 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/Event'
+              example:
+                success: true
+                data:
+                  id: 665f1a2b3c4d5e6f7a8b9c0d
+                  consumer_id: null
+                  account_id: '12345'
+                  user_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                  key: post.order
+                  payload:
+                    symbol: EURUSD
+                    strategy: 1
+                    type: buy
+                    volume: 0.1
+                    stop_loss: 1.08
+                    take_profit: 1.12
+                  response: null
+                  status: pending
+                  delivered_at: null
+                  processed_at: null
+                  attempts: 0
+                  created_at: '2025-06-03T14:30:00Z'
+                  updated_at: '2025-06-03T14:30:00Z'
   /api/v1/account/{id}/events/consume/:
     post:
       tags:
@@ -530,7 +726,7 @@ paths:
         - name: limit
           in: query
           required: false
-          description: Maximum number of events to consume (1-100, default 50)
+          description: Maximum number of events to consume (1-100, default 50).
           schema:
             type: integer
             minimum: 1
@@ -570,6 +766,29 @@ paths:
                         properties:
                           count:
                             type: integer
+                            description: Number of events consumed in this request.
+              example:
+                success: true
+                data:
+                  - id: 665f1a2b3c4d5e6f7a8b9c0d
+                    consumer_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    account_id: '12345'
+                    user_id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                    key: post.order
+                    payload:
+                      symbol: EURUSD
+                      strategy: 1
+                      type: buy
+                      volume: 0.1
+                    response: null
+                    status: delivered
+                    delivered_at: '2025-06-03T14:35:00Z'
+                    processed_at: null
+                    attempts: 1
+                    created_at: '2025-06-03T14:30:00Z'
+                    updated_at: '2025-06-03T14:35:00Z'
+                meta:
+                  count: 1
   /api/v1/account/{id}/events/history/:
     get:
       tags:
@@ -584,6 +803,7 @@ paths:
         - name: limit
           in: query
           required: false
+          description: Maximum number of events to return (1-100, default 50).
           schema:
             type: integer
             minimum: 1
@@ -592,11 +812,13 @@ paths:
         - name: status
           in: query
           required: false
+          description: Filter events by status.
           schema:
             $ref: '#/components/schemas/EventStatus'
         - name: key
           in: query
           required: false
+          description: Filter events by event key.
           schema:
             $ref: '#/components/schemas/EventKeyEnum'
       responses:
@@ -613,6 +835,29 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Event'
+              example:
+                success: true
+                data:
+                  - id: 665f1a2b3c4d5e6f7a8b9c0d
+                    consumer_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                    account_id: '12345'
+                    user_id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                    key: post.order
+                    payload:
+                      symbol: EURUSD
+                      strategy: 1
+                      type: buy
+                      volume: 0.1
+                    response:
+                      ticket: 12345
+                      status: filled
+                      open_price: 1.105
+                    status: processed
+                    delivered_at: '2025-06-03T14:35:00Z'
+                    processed_at: '2025-06-03T14:36:00Z'
+                    attempts: 1
+                    created_at: '2025-06-03T14:30:00Z'
+                    updated_at: '2025-06-03T14:36:00Z'
   /api/v1/account/{id}/event/{event_id}/ack/:
     patch:
       tags:
@@ -656,6 +901,36 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/Event'
+              example:
+                success: true
+                data:
+                  id: 665f1a2b3c4d5e6f7a8b9c0d
+                  consumer_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                  account_id: '12345'
+                  user_id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+                  key: post.order
+                  payload:
+                    symbol: EURUSD
+                    strategy: 1
+                    type: buy
+                    volume: 0.1
+                  response:
+                    ticket: 12345
+                    status: filled
+                    open_price: 1.105
+                  status: processed
+                  delivered_at: '2025-06-03T14:35:00Z'
+                  processed_at: '2025-06-03T14:36:00Z'
+                  attempts: 1
+                  created_at: '2025-06-03T14:30:00Z'
+                  updated_at: '2025-06-03T14:36:00Z'
+        '404':
+          description: Event not found or not in delivered status
+          content:
+            application/json:
+              example:
+                success: false
+                message: Event not found or not in delivered status.
   /api/v1/account/{id}/event/{event_id}/response/:
     get:
       tags:
@@ -673,6 +948,16 @@ paths:
           description: Event response data
           content:
             application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          response:
+                            type: object
               example:
                 success: true
                 data:
@@ -680,17 +965,37 @@ paths:
                     ticket: 12345
                     status: filled
                     open_price: 1.105
+        '404':
+          description: Event not found or no response available
+          content:
+            application/json:
+              examples:
+                not_found:
+                  summary: Event does not exist
+                  value:
+                    success: false
+                    message: Event not found.
+                no_response:
+                  summary: Event exists but has no response
+                  value:
+                    success: false
+                    message: No response available for this event.
   /api/v1/account/{id}/media/upload/:
     post:
       tags:
         - Media
       summary: Upload file
       description: |
-        Uploads a file associated with the account. Files are stored with a unique
-        name and expire after the configured expiration period (default 24 hours).
+        Uploads a file associated with the account. Files are stored with a
+        UUID-based name and expire after the configured period (default 24 hours).
 
-        Returns metadata about the uploaded file, including the `file_name` to use
-        for downloading.
+        **Allowed content types:** `image/jpeg`, `image/png`, `image/gif`,
+        `image/webp`, `application/pdf`, `text/csv`, `application/zip`
+
+        **Allowed extensions:** `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.pdf`,
+        `.csv`, `.zip`
+
+        **Max file size:** 1 GB (1 073 741 824 bytes)
 
         **Permissions:** `root` OR account owner with role `root` | `platform`
       parameters:
@@ -707,7 +1012,6 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: File to upload (max 1 GB)
       responses:
         '201':
           description: File uploaded
@@ -720,14 +1024,55 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/MediaFile'
+              example:
+                success: true
+                data:
+                  id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                  account_id: 12345678
+                  user_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+                  file_name: c9bf9e57-1685-4c89-bafb-ff5af830be8a.pdf
+                  original_name: trade-report-2026-02.pdf
+                  content_type: application/pdf
+                  size: 245760
+                  expires_at: '2026-03-04T14:30:00Z'
+                  created_at: '2026-03-03T14:30:00Z'
+        '422':
+          description: Validation error (invalid file type, size exceeded, or bad file name)
+          content:
+            application/json:
+              examples:
+                size_exceeded:
+                  summary: File size exceeds limit
+                  value:
+                    success: false
+                    file:
+                      - File size exceeds the maximum allowed size of 1024 MB.
+                invalid_extension:
+                  summary: Disallowed file extension
+                  value:
+                    success: false
+                    file:
+                      - File type '.exe' is not allowed.
+                invalid_content_type:
+                  summary: Disallowed content type
+                  value:
+                    success: false
+                    file:
+                      - Content type 'application/x-msdownload' is not allowed.
   /api/v1/account/{id}/media/{file_name}/download/:
     get:
       tags:
         - Media
       summary: Download file
       description: |
-        Downloads a file by its unique file name. Returns the file as an attachment
-        with the original file name.
+        Downloads a file by its unique file name. Returns the file binary content
+        as an attachment with the original file name in `Content-Disposition`.
+
+        The response `Content-Type` is set to the stored content type for safe
+        types (`image/jpeg`, `image/png`, `image/gif`, `image/webp`,
+        `application/pdf`). All other types are served as `application/octet-stream`.
+
+        The `X-Content-Type-Options: nosniff` header is always set.
 
         Expired files return `410 Gone`.
 
@@ -738,23 +1083,70 @@ paths:
       responses:
         '200':
           description: File content
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: Attachment with the original file name, e.g. `attachment; filename="report.pdf"`
+            X-Content-Type-Options:
+              schema:
+                type: string
+                const: nosniff
           content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
             application/octet-stream:
               schema:
                 type: string
                 format: binary
         '404':
-          description: File not found
+          description: File not found (database record missing or file missing from disk)
+          content:
+            application/json:
+              examples:
+                record_not_found:
+                  summary: No database record
+                  value:
+                    success: false
+                    message: Not found.
+                disk_not_found:
+                  summary: File missing from disk
+                  value:
+                    success: false
+                    message: File not found on disk.
         '410':
           description: File has expired
+          content:
+            application/json:
+              example:
+                success: false
+                message: File has expired.
   /api/v1/account/{id}/media/{file_name}/:
     delete:
       tags:
         - Media
       summary: Delete file
       description: |
-        Deletes a file by its unique file name. Removes both the database record
-        and the file from disk.
+        Deletes a file by its unique file name. Removes the database record and,
+        if present, the file from disk. Empty parent directories are cleaned up.
 
         **Permissions:** `root` OR account owner with role `root` | `platform`
       parameters:
@@ -762,9 +1154,14 @@ paths:
         - $ref: '#/components/parameters/FileName'
       responses:
         '204':
-          description: File deleted
+          description: File deleted (no response body)
         '404':
           description: File not found
+          content:
+            application/json:
+              example:
+                success: false
+                message: Not found.
   /api/v1/accounts/:
     get:
       tags:
@@ -897,10 +1294,15 @@ paths:
       summary: Upsert strategy
       description: |
         Creates or updates a trading strategy. The strategy is linked to an account
-        owned by the authenticated user.
+        owned by the authenticated user. All fields are required on every request.
 
-        If a strategy with the given `id` already exists and its account belongs to
-        the authenticated user, it is updated. Otherwise, a new strategy is created.
+        The endpoint performs two ownership checks before writing:
+        1. The `account_id` must reference an account owned by the authenticated user.
+        2. If a strategy with the given `id` already exists, its current account must
+           also belong to the authenticated user.
+
+        When both checks pass, the strategy is created or updated via `update_or_create`
+        using `id` as the lookup and the remaining fields as defaults.
 
         **Permissions:** `root` or `producer`
       requestBody:
@@ -909,14 +1311,27 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertStrategyRequest'
-            example:
-              id: 550e8400-e29b-41d4-a716-446655440000
-              account_id: 12345678
-              symbol: EURUSD
-              prefix: EU
-              name: Euro Scalper v2
-              magic_number: 100001
-              balance: 5000
+            examples:
+              create:
+                summary: Create a new strategy
+                value:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  account_id: 12345678
+                  symbol: EURUSD
+                  prefix: EU
+                  name: Euro Scalper v2
+                  magic_number: 100001
+                  balance: 5000
+              update:
+                summary: Update an existing strategy
+                value:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  account_id: 12345678
+                  symbol: EURUSD
+                  prefix: EU
+                  name: Euro Scalper v3
+                  magic_number: 100001
+                  balance: 7500
       responses:
         '200':
           description: Strategy updated
@@ -934,8 +1349,10 @@ paths:
                 success: true
                 data:
                   id: 550e8400-e29b-41d4-a716-446655440000
+        '400':
+          description: Validation error (missing or invalid fields)
         '403':
-          description: Account or strategy belongs to another user
+          description: Account not owned by user, or existing strategy belongs to another user
   /api/v1/heartbeat/:
     post:
       tags:
@@ -944,6 +1361,10 @@ paths:
       description: |
         Records a heartbeat event for a trading account or strategy.
         Used to track the lifecycle and health of running systems.
+
+        The `strategy_id` field is optional and may be omitted or set to `null`
+        when the heartbeat applies to the account-level system rather than a
+        specific strategy.
 
         **Permissions:** `root` or `producer`
       requestBody:
@@ -960,21 +1381,41 @@ paths:
                   strategy_id: 550e8400-e29b-41d4-a716-446655440000
                   event: on_running
                   system: strategy
+              strategy_error:
+                summary: Strategy error heartbeat
+                value:
+                  account_id: 12345678
+                  strategy_id: 550e8400-e29b-41d4-a716-446655440000
+                  event: on_error
+                  system: strategy
               system_init:
                 summary: System initialization
                 value:
                   account_id: 12345678
                   event: on_init
                   system: system
+              system_deinit:
+                summary: System deinitialization
+                value:
+                  account_id: 12345678
+                  event: on_deinit
+                  system: system
       responses:
         '201':
           description: Heartbeat recorded
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
               example:
                 success: true
         '403':
-          description: Account belongs to another user
+          description: Account not found or not owned by the authenticated user
+          content:
+            application/json:
+              example:
+                success: false
+                message: Account not found or not owned by you.
   /api/v1/order/:
     post:
       tags:
@@ -986,6 +1427,11 @@ paths:
         If an order with the given `id` already exists and its `account_id` matches,
         it is updated. Otherwise, a new order is created.
 
+        The `account_id` must reference an account owned by the authenticated user.
+        If the order already exists under a different account, the request is rejected.
+
+        Only provided optional fields are written; omitted fields remain unchanged on update.
+
         **Permissions:** `root` or `producer`
       requestBody:
         required: true
@@ -995,7 +1441,7 @@ paths:
               $ref: '#/components/schemas/UpsertOrderRequest'
             examples:
               new_order:
-                summary: Create a new buy order
+                summary: Open a new buy order
                 value:
                   id: 550e8400-e29b-41d4-a716-446655440000
                   account_id: 12345678
@@ -1003,13 +1449,14 @@ paths:
                   symbol: EURUSD
                   side: buy
                   status: open
+                  is_market_order: true
                   volume: 0.1
                   open_price: 1.105
                   stop_loss: 1.1
                   take_profit: 1.11
                   opened_at: '2026-02-27T10:30:00Z'
               close_order:
-                summary: Update order to closed
+                summary: Close an existing order
                 value:
                   id: 550e8400-e29b-41d4-a716-446655440000
                   account_id: 12345678
@@ -1017,10 +1464,28 @@ paths:
                   side: buy
                   status: closed
                   volume: 0.1
+                  open_price: 1.105
                   close_price: 1.108
                   profit: 30
+                  commission: -3.5
+                  swap: -0.8
                   close_reason: tp
+                  opened_at: '2026-02-27T10:30:00Z'
                   closed_at: '2026-02-27T12:00:00Z'
+              pending_order:
+                summary: Place a pending limit order
+                value:
+                  id: 770e8400-e29b-41d4-a716-446655440000
+                  account_id: 12345678
+                  strategy_id: 660e8400-e29b-41d4-a716-446655440000
+                  symbol: GBPUSD
+                  side: buy
+                  status: pending
+                  is_market_order: false
+                  volume: 0.5
+                  open_at_price: 1.265
+                  stop_loss: 1.26
+                  take_profit: 1.275
       responses:
         '200':
           description: Order updated
@@ -1038,8 +1503,20 @@ paths:
                 success: true
                 data:
                   id: 550e8400-e29b-41d4-a716-446655440000
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              example:
+                success: false
+                message: This field is required.
         '403':
-          description: Account belongs to another user
+          description: Account not owned by the user or order belongs to a different account
+          content:
+            application/json:
+              example:
+                success: false
+                message: Account not found or not owned by you.
   /api/v1/log/:
     post:
       tags:
@@ -1047,7 +1524,10 @@ paths:
       summary: Store log entry
       description: |
         Records a log entry for a trading account or strategy.
-        The `level` field is free-form (e.g. `info`, `warning`, `error`).
+        The authenticated user must own the account referenced by `account_id`.
+
+        The `level` field is free-form text (e.g. `info`, `warning`, `error`)
+        with a maximum length of 20 characters.
 
         **Permissions:** `root` or `producer`
       requestBody:
@@ -1064,12 +1544,19 @@ paths:
                   strategy_id: 550e8400-e29b-41d4-a716-446655440000
                   level: info
                   message: 'Order #12345 opened at 1.10500'
-              error_log:
-                summary: System error log
+              account_error_log:
+                summary: Account-level error without strategy
                 value:
                   account_id: 12345678
                   level: error
                   message: Connection to broker lost after 3 retries
+              strategy_warning_log:
+                summary: Strategy warning log
+                value:
+                  account_id: 12345678
+                  strategy_id: 660e8400-e29b-41d4-a716-446655440000
+                  level: warning
+                  message: Slippage exceeded 2 pips on EURUSD
       responses:
         '201':
           description: Log entry recorded
@@ -1078,7 +1565,7 @@ paths:
               example:
                 success: true
         '403':
-          description: Account belongs to another user
+          description: Account not found or not owned by the authenticated user
   /api/v1/accounts/snapshots/:
     get:
       tags:
@@ -1166,7 +1653,7 @@ paths:
                     - drawdown_pct
                     - created_at
         '400':
-          description: Missing or invalid account_id
+          description: Validation failed (missing or invalid query parameters)
         '403':
           description: Insufficient permissions (non-root user)
     post:
@@ -1203,6 +1690,8 @@ paths:
             application/json:
               example:
                 success: true
+        '400':
+          description: Validation failed (missing or invalid fields)
         '403':
           description: Account belongs to another user
   /api/v1/strategies/snapshots/:
@@ -1268,7 +1757,7 @@ paths:
               example:
                 success: true
                 data:
-                  - id: 6789abcdef012345
+                  - id: 68a1b2c3d4e5f60718293a4b
                     account_id: 12345678
                     strategy_id: 550e8400-e29b-41d4-a716-446655440000
                     nav: 5250
@@ -1291,9 +1780,19 @@ paths:
                     - drawdown_pct
                     - created_at
         '400':
-          description: Missing or invalid strategy_id
+          description: Validation error (missing or invalid parameters)
+          content:
+            application/json:
+              example:
+                success: false
+                message: This field is required.
         '403':
           description: Insufficient permissions (non-root user)
+          content:
+            application/json:
+              example:
+                success: false
+                message: Permission denied.
     post:
       tags:
         - Snapshots
@@ -1325,8 +1824,20 @@ paths:
             application/json:
               example:
                 success: true
+        '400':
+          description: Validation error (missing or invalid fields)
+          content:
+            application/json:
+              example:
+                success: false
+                message: This field is required.
         '403':
-          description: Account belongs to another user
+          description: Account not found or belongs to another user
+          content:
+            application/json:
+              example:
+                success: false
+                message: Account not found or not owned by you.
 components:
   securitySchemes:
     bearerAuth:
@@ -1467,6 +1978,52 @@ components:
             created_at:
               type: string
               format: date-time
+    SuccessEnvelope:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data: {}
+        meta:
+          type: object
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        prefix:
+          type: string
+          description: First 8 characters of the key for identification.
+        allowed_ips:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+        is_expired:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     CreateApiKeyRequest:
       type: object
       required:
@@ -1516,7 +2073,9 @@ components:
         - get.order
         - put.order
         - delete.order
-        - get.account
+        - get.account.info
+        - get.klines
+        - get.ticker
         - patch.account.disable
         - patch.account.enable
     PushEventRequest:
@@ -1530,19 +2089,6 @@ components:
         payload:
           type: object
           description: Validated against the event key schema. Max 65536 bytes, max 5 nesting levels.
-    SuccessEnvelope:
-      type: object
-      required:
-        - success
-      properties:
-        success:
-          type: boolean
-          const: true
-        message:
-          type: string
-        data: {}
-        meta:
-          type: object
     EventStatus:
       type: string
       enum:
@@ -1596,24 +2142,48 @@ components:
           description: Optional response data. Max 65536 bytes, max 5 nesting levels.
     MediaFile:
       type: object
+      required:
+        - id
+        - account_id
+        - user_id
+        - file_name
+        - original_name
+        - content_type
+        - size
+        - expires_at
+        - created_at
       properties:
         id:
           type: string
+          format: uuid
         account_id:
-          type: string
+          type: integer
         user_id:
           type: string
+          format: uuid
         file_name:
           type: string
+          description: Unique server-generated file name (UUID + extension).
         original_name:
           type: string
+          description: Original file name provided during upload.
         content_type:
           type: string
+          enum:
+            - image/jpeg
+            - image/png
+            - image/gif
+            - image/webp
+            - application/pdf
+            - text/csv
+            - application/zip
         size:
           type: integer
+          description: File size in bytes.
         expires_at:
           type: string
           format: date-time
+          description: UTC timestamp after which the file can no longer be downloaded.
         created_at:
           type: string
           format: date-time
@@ -1760,43 +2330,33 @@ components:
         signal_price:
           type: number
           format: decimal
-          nullable: true
         open_at_price:
           type: number
           format: decimal
-          nullable: true
         open_price:
           type: number
           format: decimal
-          nullable: true
         close_price:
           type: number
           format: decimal
-          nullable: true
         take_profit:
           type: number
           format: decimal
-          nullable: true
         stop_loss:
           type: number
           format: decimal
-          nullable: true
         profit:
           type: number
           format: decimal
-          nullable: true
         gross_profit:
           type: number
           format: decimal
-          nullable: true
         commission:
           type: number
           format: decimal
-          nullable: true
         swap:
           type: number
           format: decimal
-          nullable: true
         close_reason:
           type: string
           enum:
@@ -1807,7 +2367,6 @@ components:
             - mobile
             - web
             - unknown
-          nullable: true
         signal_at:
           type: string
           format: date-time
@@ -1921,36 +2480,3 @@ components:
         exposure_lots:
           type: number
           format: decimal
-    ApiKey:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        prefix:
-          type: string
-          description: First 8 characters of the key for identification.
-        allowed_ips:
-          type: array
-          items:
-            type: string
-        is_active:
-          type: boolean
-        is_expired:
-          type: boolean
-        expires_at:
-          type: string
-          format: date-time
-          nullable: true
-        last_used_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time

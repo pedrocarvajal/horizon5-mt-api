@@ -68,8 +68,14 @@ keys:
                     id:
                       type: integer
                       required: true
-                - key: get.account
-                  name: GET_ACCOUNT
+                - key: get.account.info
+                  name: GET_ACCOUNT_INFO
+                  schema: {}
+                - key: get.klines
+                  name: GET_KLINES
+                  schema: {}
+                - key: get.ticker
+                  name: GET_TICKER
                   schema: {}
                 - key: patch.account.disable
                   name: PATCH_ACCOUNT_DISABLE
@@ -107,10 +113,10 @@ push:
                   volume: 0.1
                   stop_loss: 1.0800
                   take_profit: 1.1200
-            get_account:
+            get_account_info:
               summary: Request account info
               value:
-                key: get.account
+                key: get.account.info
                 payload: {}
     responses:
       "201":
@@ -124,6 +130,28 @@ push:
                   properties:
                     data:
                       $ref: "../components/schemas.yaml#/Event"
+            example:
+              success: true
+              data:
+                id: "665f1a2b3c4d5e6f7a8b9c0d"
+                consumer_id: null
+                account_id: "12345"
+                user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                key: post.order
+                payload:
+                  symbol: EURUSD
+                  strategy: 1
+                  type: buy
+                  volume: 0.1
+                  stop_loss: 1.0800
+                  take_profit: 1.1200
+                response: null
+                status: pending
+                delivered_at: null
+                processed_at: null
+                attempts: 0
+                created_at: "2025-06-03T14:30:00Z"
+                updated_at: "2025-06-03T14:30:00Z"
 
 consume:
   post:
@@ -141,7 +169,7 @@ consume:
       - name: limit
         in: query
         required: false
-        description: Maximum number of events to consume (1-100, default 50)
+        description: Maximum number of events to consume (1-100, default 50).
         schema:
           type: integer
           minimum: 1
@@ -181,6 +209,29 @@ consume:
                       properties:
                         count:
                           type: integer
+                          description: Number of events consumed in this request.
+            example:
+              success: true
+              data:
+                - id: "665f1a2b3c4d5e6f7a8b9c0d"
+                  consumer_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  account_id: "12345"
+                  user_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                  key: post.order
+                  payload:
+                    symbol: EURUSD
+                    strategy: 1
+                    type: buy
+                    volume: 0.1
+                  response: null
+                  status: delivered
+                  delivered_at: "2025-06-03T14:35:00Z"
+                  processed_at: null
+                  attempts: 1
+                  created_at: "2025-06-03T14:30:00Z"
+                  updated_at: "2025-06-03T14:35:00Z"
+              meta:
+                count: 1
 
 history:
   get:
@@ -195,6 +246,7 @@ history:
       - name: limit
         in: query
         required: false
+        description: Maximum number of events to return (1-100, default 50).
         schema:
           type: integer
           minimum: 1
@@ -203,11 +255,13 @@ history:
       - name: status
         in: query
         required: false
+        description: Filter events by status.
         schema:
           $ref: "../components/schemas.yaml#/EventStatus"
       - name: key
         in: query
         required: false
+        description: Filter events by event key.
         schema:
           $ref: "../components/schemas.yaml#/EventKeyEnum"
     responses:
@@ -224,6 +278,29 @@ history:
                       type: array
                       items:
                         $ref: "../components/schemas.yaml#/Event"
+            example:
+              success: true
+              data:
+                - id: "665f1a2b3c4d5e6f7a8b9c0d"
+                  consumer_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  account_id: "12345"
+                  user_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                  key: post.order
+                  payload:
+                    symbol: EURUSD
+                    strategy: 1
+                    type: buy
+                    volume: 0.1
+                  response:
+                    ticket: 12345
+                    status: filled
+                    open_price: 1.1050
+                  status: processed
+                  delivered_at: "2025-06-03T14:35:00Z"
+                  processed_at: "2025-06-03T14:36:00Z"
+                  attempts: 1
+                  created_at: "2025-06-03T14:30:00Z"
+                  updated_at: "2025-06-03T14:36:00Z"
 
 ack:
   patch:
@@ -267,6 +344,36 @@ ack:
                   properties:
                     data:
                       $ref: "../components/schemas.yaml#/Event"
+            example:
+              success: true
+              data:
+                id: "665f1a2b3c4d5e6f7a8b9c0d"
+                consumer_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                account_id: "12345"
+                user_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                key: post.order
+                payload:
+                  symbol: EURUSD
+                  strategy: 1
+                  type: buy
+                  volume: 0.1
+                response:
+                  ticket: 12345
+                  status: filled
+                  open_price: 1.1050
+                status: processed
+                delivered_at: "2025-06-03T14:35:00Z"
+                processed_at: "2025-06-03T14:36:00Z"
+                attempts: 1
+                created_at: "2025-06-03T14:30:00Z"
+                updated_at: "2025-06-03T14:36:00Z"
+      "404":
+        description: Event not found or not in delivered status
+        content:
+          application/json:
+            example:
+              success: false
+              message: "Event not found or not in delivered status."
 
 response:
   get:
@@ -284,6 +391,16 @@ response:
         description: Event response data
         content:
           application/json:
+            schema:
+              allOf:
+                - $ref: "../components/schemas.yaml#/SuccessEnvelope"
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        response:
+                          type: object
             example:
               success: true
               data:
@@ -291,3 +408,18 @@ response:
                   ticket: 12345
                   status: filled
                   open_price: 1.1050
+      "404":
+        description: Event not found or no response available
+        content:
+          application/json:
+            examples:
+              not_found:
+                summary: Event does not exist
+                value:
+                  success: false
+                  message: "Event not found."
+              no_response:
+                summary: Event exists but has no response
+                value:
+                  success: false
+                  message: "No response available for this event."
