@@ -68,6 +68,9 @@ keys:
                     id:
                       type: integer
                       required: true
+                    strategy:
+                      type: integer
+                      required: true
                 - key: get.account.info
                   name: GET_ACCOUNT_INFO
                   schema: {}
@@ -76,7 +79,10 @@ keys:
                   schema: {}
                 - key: get.ticker
                   name: GET_TICKER
-                  schema: {}
+                  schema:
+                    symbols:
+                      type: string
+                      required: true
                 - key: patch.account.disable
                   name: PATCH_ACCOUNT_DISABLE
                   schema: {}
@@ -118,6 +124,12 @@ push:
               value:
                 key: get.account.info
                 payload: {}
+            get_ticker:
+              summary: Request ticker for one or more symbols
+              value:
+                key: get.ticker
+                payload:
+                  symbols: XAUUSD,EURUSD
     responses:
       "201":
         description: Event created
@@ -190,6 +202,27 @@ consume:
           multiple:
             summary: Multiple keys
             value: post.order,get.order
+      - name: symbol
+        in: query
+        required: false
+        description: |
+          Filter events by trading symbol (e.g. `XAUUSD`, `EURUSD`). Only events
+          that were pushed with a `symbol` field in their payload will match.
+          Events without a symbol (e.g. `delete.order`, `get.account.info`) are
+          excluded when this filter is active.
+        schema:
+          type: string
+        example: XAUUSD
+      - name: strategy
+        in: query
+        required: false
+        description: |
+          Filter events by strategy ID. Only events pushed with a `strategy`
+          field in their payload will match. Can be combined with `symbol` (AND
+          logic).
+        schema:
+          type: integer
+        example: 1
     responses:
       "200":
         description: Consumed events

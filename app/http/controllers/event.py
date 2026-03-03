@@ -50,13 +50,17 @@ class EventController(BaseController):
         serializer = PushEventRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        payload = serializer.validated_data["payload"]
+
         event = Event.create(
             {
                 "account_id": id,
                 "user_id": str(request.user.pk),
                 "consumer_id": None,
                 "key": str(serializer.validated_data["key"]),
-                "payload": serializer.validated_data["payload"],
+                "symbol": payload.get("symbol"),
+                "strategy": payload.get("strategy"),
+                "payload": payload,
                 "response": None,
                 "status": EventStatus.PENDING,
                 "delivered_at": None,
@@ -86,6 +90,12 @@ class EventController(BaseController):
         if "key" in serializer.validated_data:
             keys = serializer.validated_data["key"]
             query["key"] = keys[0] if len(keys) == 1 else {"$in": keys}
+
+        if "symbol" in serializer.validated_data:
+            query["symbol"] = serializer.validated_data["symbol"]
+
+        if "strategy" in serializer.validated_data:
+            query["strategy"] = serializer.validated_data["strategy"]
 
         cursor = Event.where(
             query,

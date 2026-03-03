@@ -8,6 +8,8 @@ VALID_EVENT_KEYS = {k.value for k in EventKey}
 class ConsumeEventRequestSerializer(serializers.Serializer):
     limit = serializers.IntegerField(default=50, min_value=1, max_value=100)
     key = serializers.CharField(required=False)
+    symbol = serializers.CharField(required=False)
+    strategy = serializers.IntegerField(required=False)
 
     def validate_key(self, value: str) -> list[str]:
         keys = [k.strip() for k in value.split(",") if k.strip()]

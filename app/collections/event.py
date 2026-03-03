@@ -12,4 +12,14 @@ class Event(BaseDocument):
             [("account_id", ASCENDING), ("status", ASCENDING), ("created_at", DESCENDING)],
             name="account_status_created",
         ),
+        IndexModel(
+            [("account_id", ASCENDING), ("status", ASCENDING), ("symbol", ASCENDING), ("created_at", ASCENDING)],
+            name="account_status_symbol_created",
+            sparse=True,
+        ),
+        IndexModel(
+            [("account_id", ASCENDING), ("status", ASCENDING), ("strategy", ASCENDING), ("created_at", ASCENDING)],
+            name="account_status_strategy_created",
+            sparse=True,
+        ),
     ]

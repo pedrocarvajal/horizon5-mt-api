@@ -36,10 +36,13 @@ class EventKey(Enum):
             },
             EventKey.DELETE_ORDER: {
                 "id": {"type": "integer", "required": True},
+                "strategy": {"type": "integer", "required": True},
             },
             EventKey.GET_ACCOUNT_INFO: {},
             EventKey.GET_KLINES: {},
-            EventKey.GET_TICKER: {},
+            EventKey.GET_TICKER: {
+                "symbols": {"type": "string", "required": True},
+            },
             EventKey.PATCH_ACCOUNT_DISABLE: {},
             EventKey.PATCH_ACCOUNT_ENABLE: {},
         }

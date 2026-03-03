@@ -93,6 +93,97 @@ class TestConsumeEvents:
         keys = {event["key"] for event in response.data["data"]}
         assert keys == {"get.account.info", "get.ticker"}
 
+    def test_should_filter_by_symbol(self, platform_client, platform_account, platform_user):
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            symbol="XAUUSD",
+            payload={"symbol": "XAUUSD", "strategy": 1, "type": "buy", "volume": 0.1},
+        )
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            symbol="EURUSD",
+            payload={"symbol": "EURUSD", "strategy": 1, "type": "sell", "volume": 0.1},
+        )
+
+        response = platform_client.post(f"{consume_url(platform_account.id)}?symbol=XAUUSD")
+
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["payload"]["symbol"] == "XAUUSD"
+
+    def test_should_filter_by_strategy(self, platform_client, platform_account, platform_user):
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            strategy=1,
+            payload={"symbol": "XAUUSD", "strategy": 1, "type": "buy", "volume": 0.1},
+        )
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            strategy=2,
+            payload={"symbol": "XAUUSD", "strategy": 2, "type": "buy", "volume": 0.1},
+        )
+
+        response = platform_client.post(f"{consume_url(platform_account.id)}?strategy=1")
+
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["payload"]["strategy"] == 1
+
+    def test_should_filter_by_symbol_and_strategy(self, platform_client, platform_account, platform_user):
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            symbol="XAUUSD",
+            strategy=1,
+            payload={"symbol": "XAUUSD", "strategy": 1, "type": "buy", "volume": 0.1},
+        )
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            symbol="XAUUSD",
+            strategy=2,
+            payload={"symbol": "XAUUSD", "strategy": 2, "type": "buy", "volume": 0.1},
+        )
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            symbol="EURUSD",
+            strategy=1,
+            payload={"symbol": "EURUSD", "strategy": 1, "type": "buy", "volume": 0.1},
+        )
+
+        response = platform_client.post(f"{consume_url(platform_account.id)}?symbol=XAUUSD&strategy=1")
+
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["payload"]["symbol"] == "XAUUSD"
+        assert response.data["data"][0]["payload"]["strategy"] == 1
+
+    def test_should_not_return_events_without_symbol_when_symbol_filter_is_set(
+        self, platform_client, platform_account, platform_user
+    ):
+        create_event(platform_account.id, platform_user.pk, key="get.account.info", symbol=None, payload={})
+        create_event(
+            platform_account.id,
+            platform_user.pk,
+            key="post.order",
+            symbol="XAUUSD",
+            payload={"symbol": "XAUUSD", "strategy": 1, "type": "buy", "volume": 0.1},
+        )
+
+        response = platform_client.post(f"{consume_url(platform_account.id)}?symbol=XAUUSD")
+
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["key"] == "post.order"
+
     def test_should_not_consume_already_delivered_events(self, platform_client, platform_account, platform_user):
         create_event(platform_account.id, platform_user.pk, status=EventStatus.DELIVERED)
 
