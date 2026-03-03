@@ -61,37 +61,35 @@ class TestLogin:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
-        assert response.data["message"] == "Validation failed."
-        assert "non_field_errors" in response.data["data"]["errors"]
+        assert "message" in response.data
 
     def test_should_return_400_when_password_is_missing(self, api_client, login_url):
         response = api_client.post(login_url, {"email": "user@test.co"})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
-        assert response.data["message"] == "Validation failed."
-        assert "non_field_errors" in response.data["data"]["errors"]
+        assert "message" in response.data
 
     def test_should_return_400_when_email_format_is_invalid(self, api_client, login_url):
         response = api_client.post(login_url, {"email": "not-an-email", "password": TEST_PASSWORD})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
-        assert "email" in response.data["data"]["errors"]
+        assert "message" in response.data
 
     def test_should_return_400_when_password_is_shorter_than_8_characters(self, api_client, login_url):
         response = api_client.post(login_url, {"email": "user@test.co", "password": "short"})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
-        assert "password" in response.data["data"]["errors"]
+        assert "message" in response.data
 
     def test_should_return_400_when_body_is_empty(self, api_client, login_url):
         response = api_client.post(login_url, {})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
-        assert response.data["message"] == "Validation failed."
+        assert "message" in response.data
 
     def test_should_return_429_when_ip_rate_limit_exceeded(self, api_client, login_url, active_user):
         for _ in range(5):

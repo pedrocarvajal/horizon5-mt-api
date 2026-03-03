@@ -101,14 +101,14 @@ class TestCreateApiKey:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
-        assert "name" in response.data["data"]["errors"]
+        assert "message" in response.data
 
     def test_should_return_400_when_name_exceeds_100_characters(self, authenticated_client):
         response = authenticated_client.post(URL, {"name": "x" * 101})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
-        assert "name" in response.data["data"]["errors"]
+        assert "message" in response.data
 
     def test_should_return_400_when_allowed_ips_contains_invalid_ip(self, authenticated_client):
         payload = {"name": "My Key", "allowed_ips": ["not-an-ip"]}

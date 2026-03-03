@@ -45,6 +45,9 @@ services:
       MONGODB_HOST: horizon-mt-api-mongodb
       MONGODB_PORT: 27017
       MONGODB_DB: ${POSTGRES_DB}
+    volumes:
+      - .:/app
+      - /app/.venv
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -67,6 +70,9 @@ services:
       MONGODB_HOST: horizon-mt-api-mongodb
       MONGODB_PORT: 27017
       MONGODB_DB: ${POSTGRES_DB}
+    volumes:
+      - .:/app
+      - /app/.venv
     depends_on:
       horizon-mt-api-postgres:
         condition: service_healthy

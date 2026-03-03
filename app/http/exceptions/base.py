@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
 from app.enums import ExceptionMapping
-from app.http.exceptions.helpers import extract_message
+from app.http.exceptions.helpers import extract_message, extract_validation_message
 from app.http.response import build_response
 
 
@@ -17,8 +17,10 @@ def exception_handler(exception: Exception, context: dict[str, Any]) -> Response
 
     if isinstance(exception, ValidationError):
         return build_response(
-            message=ExceptionMapping.VALIDATION_FAILED.message,
-            data={"errors": exception.detail},
+            message=extract_validation_message(
+                exception.detail,
+                ExceptionMapping.VALIDATION_FAILED.message,
+            ),
             status_code=ExceptionMapping.VALIDATION_FAILED.status_code,
         )
 
