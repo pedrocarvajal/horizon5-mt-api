@@ -50,16 +50,17 @@ class AccountController(BaseController):
 
             if is_platform:
                 if existing is None:
-                    account = Account.objects.create(id=account_id, user=user, **trading_fields)
-                    created = True
-                else:
-                    Account.objects.filter(id=account_id).update(**trading_fields)
-                    account = existing
-                    created = False
+                    return self.reply(
+                        data={"detail": "Account not found."},
+                        status_code=status.HTTP_404_NOT_FOUND,
+                    )
+
+                Account.objects.filter(id=account_id).update(**trading_fields)
+                account = existing
 
                 return self.reply(
                     data={"id": account.id},
-                    status_code=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+                    status_code=status.HTTP_200_OK,
                 )
 
             if existing and existing.user_id != user.pk:
