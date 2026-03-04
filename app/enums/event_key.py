@@ -40,6 +40,7 @@ class EventKey(Enum):
                 "strategy": {"type": "integer", "required": True},
             },
             EventKey.GET_ORDERS: {
+                "strategy": {"type": "integer", "required": False},
                 "symbol": {"type": "string", "required": False, "max_length": 50},
                 "side": {
                     "type": "string",

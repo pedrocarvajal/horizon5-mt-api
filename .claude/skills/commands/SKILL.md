@@ -15,9 +15,11 @@ Event commands poll for response up to 10 seconds after pushing.
 
 ### dev_push_order
 
+`--strategy` is the EA **magic number** (int), not the strategy UUID.
+
 ```bash
-python manage.py dev_push_order --account-id 11912085 --strategy 1
-python manage.py dev_push_order --account-id 11912085 --strategy 1 --symbol XAUUSD --volume 0.01 --type buy --sl 1900.00 --tp 2100.00
+python manage.py dev_push_order --account-id 11912085 --strategy 602705479
+python manage.py dev_push_order --account-id 11912085 --strategy 602705479 --symbol XAUUSD --volume 0.01 --type buy --sl 1900.00 --tp 2100.00
 ```
 
 ### dev_modify_order
@@ -29,15 +31,14 @@ python manage.py dev_modify_order --account-id 11912085 --order-id 12345 --sl 19
 ### dev_close_order
 
 ```bash
-python manage.py dev_close_order --account-id 11912085 --order-id 12345 --strategy 1
+python manage.py dev_close_order --account-id 11912085 --order-id 12345 --strategy 602705479
 ```
 
 ### dev_get_orders
 
 ```bash
-python manage.py dev_get_orders --account-id 11912085
-python manage.py dev_get_orders --account-id 11912085 --symbol XAUUSD
-python manage.py dev_get_orders --account-id 11912085 --symbol XAUUSD --side buy --status open
+python manage.py dev_get_orders --account-id 11912085 --strategy 602705479 --symbol XAUUSD
+python manage.py dev_get_orders --account-id 11912085 --strategy 602705479 --symbol XAUUSD --side buy --status open
 ```
 
 ### dev_account_info
@@ -76,19 +77,15 @@ python manage.py dev_list_strategies
 
 ### dev_list_snapshots
 
+`--strategy` is the EA **magic number** (int). The command resolves the UUID internally.
+
 ```bash
 python manage.py dev_list_snapshots --type account --account-id 11912085
-python manage.py dev_list_snapshots --type strategy --strategy-id 550e8400-e29b-41d4-a716-446655440000
-python manage.py dev_list_snapshots --type strategy --strategy-id 550e8400-e29b-41d4-a716-446655440000 --account-id 11912085 --per-page 10 --order-by -created_at
+python manage.py dev_list_snapshots --type strategy --strategy 1
+python manage.py dev_list_snapshots --type strategy --strategy 1 --account-id 11912085 --per-page 10 --order-by -created_at
 ```
 
 ---
-
-### dev_get_producer_credentials
-
-```bash
-python manage.py dev_get_producer_credentials
-```
 
 ---
 

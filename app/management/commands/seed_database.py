@@ -12,17 +12,17 @@ SEED_DATA = [
         "email": "pedro@mail.co",
         "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
         "role": SystemRole.ROOT,
-        "api_keys": [
-            {
-                "name": "root",
-                "raw_key": os.environ.get("SEED_ROOT_API_KEY", ""),
-            },
-        ],
     },
     {
         "email": "horizon5@mail.co",
         "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
         "role": SystemRole.PLATFORM,
+        "api_keys": [
+            {
+                "name": "platform",
+                "raw_key": os.environ.get("SEED_PLATFORM_API_KEY", ""),
+            },
+        ],
     },
 ]
 
@@ -65,7 +65,9 @@ class Command(BaseCommand):
                 raw_key = api_key_entry["raw_key"]
 
                 if not raw_key:
-                    self.stdout.write(self.style.WARNING("  Skipping API key: SEED_ROOT_API_KEY not set"))
+                    self.stdout.write(
+                        self.style.WARNING(f"  Skipping API key: {api_key_entry['name']} — raw key not set")
+                    )
                     continue
 
                 key_hash = ApiKey.hash_key(raw_key)

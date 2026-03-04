@@ -3,7 +3,7 @@ from typing import ClassVar, cast
 from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -49,14 +49,14 @@ class AccountController(BaseController):
             existing = Account.objects.select_for_update().filter(id=account_id).first()
 
             if is_platform:
-                if existing is None:
-                    raise NotFound("Account not found.")
-
-                Account.objects.filter(id=account_id).update(**trading_fields)
+                account, created = Account.objects.update_or_create(
+                    id=account_id,
+                    defaults=trading_fields,
+                )
 
                 return self.reply(
-                    data={"id": account_id},
-                    status_code=status.HTTP_200_OK,
+                    data={"id": account.id},
+                    status_code=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
                 )
 
             if existing and existing.user_id != user.pk:

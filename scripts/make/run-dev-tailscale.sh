@@ -13,6 +13,9 @@ docker_compose up -d horizon-mt-api-postgres horizon-mt-api-mongodb
 log_info "Running database migrations..."
 docker_compose run --rm horizon-mt-api-web uv run python manage.py migrate
 
+log_info "Clearing application container logs..."
+docker_compose rm -sf horizon-mt-api-web horizon-mt-api-scheduler 2>/dev/null || true
+
 log_info "Starting application services..."
 docker_compose up -d horizon-mt-api-web horizon-mt-api-scheduler
 

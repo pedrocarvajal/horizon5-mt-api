@@ -10,6 +10,7 @@ class Command(BaseEventCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--account-id", type=int, required=True, help="MetaTrader account ID")
+        parser.add_argument("--strategy", type=int, required=True, help="Strategy magic number")
         parser.add_argument("--symbol", type=str, default=None, help="Filter by symbol (e.g. XAUUSD)")
         parser.add_argument("--side", type=str, choices=["buy", "sell"], default=None, help="Filter by side")
         parser.add_argument(
@@ -23,7 +24,7 @@ class Command(BaseEventCommand):
     def handle(self, *_args, **options) -> None:
         client = self.get_client()
 
-        payload: dict = {}
+        payload: dict = {"strategy": options["strategy"]}
 
         if options["symbol"] is not None:
             payload["symbol"] = options["symbol"]

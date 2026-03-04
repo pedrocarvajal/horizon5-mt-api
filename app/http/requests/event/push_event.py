@@ -22,7 +22,7 @@ class PushEventRequestSerializer(serializers.Serializer):
         serializer_class = event_key.serializer()
         serializer = serializer_class(data=attrs["payload"])
         serializer.is_valid(raise_exception=True)
-        attrs["payload"] = serializer.validated_data
+        attrs["payload"] = {k: v for k, v in serializer.validated_data.items() if v is not None}
 
         magic_number = attrs["payload"].get("strategy")
         if (

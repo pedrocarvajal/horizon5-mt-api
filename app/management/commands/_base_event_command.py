@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 
 from ._event_api_client import EventApiClient
 
-MAX_POLL_ITERATIONS = 10
+MAX_POLL_ITERATIONS = 60
 POLL_INTERVAL_SECONDS = 1
 
 
