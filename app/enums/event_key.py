@@ -28,15 +28,16 @@ class EventKey(Enum):
                 "comment": {"type": "string", "required": False, "max_length": 255},
             },
             EventKey.GET_ORDER: {
-                "id": {"type": "integer", "required": True},
+                "id": {"type": "string", "required": True},
             },
             EventKey.PUT_ORDER: {
-                "id": {"type": "integer", "required": True},
+                "id": {"type": "string", "required": True},
+                "strategy": {"type": "integer", "required": True},
                 "stop_loss": {"type": "float", "required": False},
                 "take_profit": {"type": "float", "required": False},
             },
             EventKey.DELETE_ORDER: {
-                "id": {"type": "integer", "required": True},
+                "id": {"type": "string", "required": True},
                 "strategy": {"type": "integer", "required": True},
             },
             EventKey.GET_ORDERS: {

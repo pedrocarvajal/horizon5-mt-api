@@ -2,7 +2,7 @@
 
 Connection is configured via `.env`:
 
-- `SEED_ROOT_API_KEY` — bearer token
+- `SEED_PLATFORM_API_KEY` — bearer token
 - `DJANGO_FORWARD_HOST` — base URL (e.g. `http://100.66.47.69:8000`)
 
 Load before running: `source .env`
@@ -31,7 +31,7 @@ python manage.py dev_modify_order --account-id 11912085 --order-id 12345 --sl 19
 ### dev_close_order
 
 ```bash
-python manage.py dev_close_order --account-id 11912085 --order-id 12345 --strategy 602705479
+python manage.py dev_close_order --account-id 11912085 --order-id 3e31e0ab-777c-462b-bf08-92720a8c557d --strategy 602705479
 ```
 
 ### dev_get_orders

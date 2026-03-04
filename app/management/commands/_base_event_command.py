@@ -2,6 +2,7 @@ import json
 import os
 import time
 
+import requests
 from django.core.management.base import BaseCommand
 
 from ._event_api_client import EventApiClient
@@ -11,15 +12,32 @@ POLL_INTERVAL_SECONDS = 1
 
 
 class BaseEventCommand(BaseCommand):
+    def execute(self, *args, **options):
+        try:
+            super().execute(*args, **options)
+        except requests.HTTPError as error:
+            try:
+                body = json.dumps(error.response.json(), indent=2)
+            except Exception:
+                body = error.response.text if error.response else str(error)
+            self.stderr.write(self.style.ERROR(f"API Error {error.response.status_code}: {body}"))
+            raise SystemExit(1) from None
+        except PermissionError as error:
+            self.stderr.write(self.style.ERROR(str(error)))
+            raise SystemExit(1) from None
+
     def get_client(self) -> EventApiClient:
-        api_key = os.environ.get("SEED_ROOT_API_KEY", "")
+        email = os.environ.get("SEED_ROOT_EMAIL", "")
+        password = os.environ.get("SEED_ROOT_PASSWORD", "")
         base_url = os.environ.get("DJANGO_FORWARD_HOST", "http://localhost:8000")
 
-        if not api_key:
-            self.stderr.write(self.style.ERROR("API key required. Set $SEED_ROOT_API_KEY in .env"))
+        if not email or not password:
+            self.stderr.write(
+                self.style.ERROR("Credentials required. Set $SEED_ROOT_EMAIL and $SEED_ROOT_PASSWORD in .env")
+            )
             raise SystemExit(1)
 
-        return EventApiClient(base_url=base_url, api_key=api_key)
+        return EventApiClient(base_url=base_url, email=email, password=password)
 
     def push_and_wait(self, client: EventApiClient, account_id: int, key: str, payload: dict) -> None:
         push_result = client.push_event(account_id, key, payload)

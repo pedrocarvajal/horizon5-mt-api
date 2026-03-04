@@ -10,14 +10,15 @@ class Command(BaseEventCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--account-id", type=int, required=True, help="MetaTrader account ID")
-        parser.add_argument("--order-id", type=int, required=True, help="Order ticket to modify")
+        parser.add_argument("--order-id", type=str, required=True, help="Order ID (UUID) to modify")
+        parser.add_argument("--strategy", type=int, required=True, help="Strategy magic number")
         parser.add_argument("--sl", type=float, default=None, help="New stop loss price")
         parser.add_argument("--tp", type=float, default=None, help="New take profit price")
 
     def handle(self, *_args, **options) -> None:
         client = self.get_client()
 
-        payload: dict = {"id": options["order_id"]}
+        payload: dict = {"id": options["order_id"], "strategy": options["strategy"]}
 
         if options["sl"] is not None:
             payload["stop_loss"] = options["sl"]

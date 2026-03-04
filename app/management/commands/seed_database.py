@@ -9,13 +9,13 @@ from app.models.user import User
 
 SEED_DATA = [
     {
-        "email": "pedro@mail.co",
+        "email": os.environ.get("SEED_ROOT_EMAIL", ""),
         "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
         "role": SystemRole.ROOT,
     },
     {
-        "email": "horizon5@mail.co",
-        "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
+        "email": os.environ.get("SEED_PLATFORM_EMAIL", ""),
+        "password": os.environ.get("SEED_PLATFORM_PASSWORD", ""),
         "role": SystemRole.PLATFORM,
         "api_keys": [
             {

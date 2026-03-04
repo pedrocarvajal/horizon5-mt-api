@@ -49,10 +49,13 @@ class AccountController(BaseController):
             existing = Account.objects.select_for_update().filter(id=account_id).first()
 
             if is_platform:
-                account, created = Account.objects.update_or_create(
-                    id=account_id,
-                    defaults=trading_fields,
-                )
+                if existing is None:
+                    account = Account.objects.create(id=account_id, user=user, **trading_fields)
+                    created = True
+                else:
+                    Account.objects.filter(id=account_id).update(**trading_fields)
+                    account = existing
+                    created = False
 
                 return self.reply(
                     data={"id": account.id},

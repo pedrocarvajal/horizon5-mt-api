@@ -2,17 +2,26 @@ import requests
 
 
 class EventApiClient:
-    def __init__(self, base_url: str, api_key: str):
+    def __init__(self, base_url: str, email: str, password: str):
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
-        access_token = self._login(api_key)
+        access_token = self._login(email, password)
         self.session.headers["Authorization"] = f"Bearer {access_token}"
+        self._assert_root_role()
 
-    def _login(self, api_key: str) -> str:
+    def _login(self, email: str, password: str) -> str:
         url = f"{self.base_url}/api/v1/auth/login/"
-        response = requests.post(url, json={"api_key": api_key}, timeout=30)
+        response = requests.post(url, json={"email": email, "password": password}, timeout=30)
         response.raise_for_status()
         return response.json()["data"]["access"]
+
+    def _assert_root_role(self) -> None:
+        url = f"{self.base_url}/api/v1/auth/me/"
+        response = self.session.get(url)
+        response.raise_for_status()
+        role = response.json()["data"]["role"]
+        if role != "root":
+            raise PermissionError(f"ROOT role required. Credentials belong to a '{role}' user.")
 
     def push_event(self, account_id: int, key: str, payload: dict) -> dict:
         url = f"{self.base_url}/api/v1/account/{account_id}/events/"

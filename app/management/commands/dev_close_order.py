@@ -10,7 +10,7 @@ class Command(BaseEventCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--account-id", type=int, required=True, help="MetaTrader account ID")
-        parser.add_argument("--order-id", type=int, required=True, help="Order ticket to close")
+        parser.add_argument("--order-id", type=str, required=True, help="Order ID (UUID) to close")
         parser.add_argument("--strategy", type=int, required=True, help="Strategy ID")
 
     def handle(self, *_args, **options) -> None:
