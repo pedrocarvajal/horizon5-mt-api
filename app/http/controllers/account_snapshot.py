@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from app.collections.account_snapshot import AccountSnapshot
 from app.http.controllers.base import PaginatedController
-from app.http.permissions.role import IsProducerOrRoot, IsRoot
+from app.http.permissions.role import IsRoot, IsRootOrPlatform
 from app.http.requests.account_snapshot.create_account_snapshot import CreateAccountSnapshotRequestSerializer
 from app.http.requests.account_snapshot.list_account_snapshot import ListAccountSnapshotRequestSerializer
 
@@ -22,7 +22,7 @@ class AccountSnapshotController(PaginatedController):
 
     permissions: ClassVar[dict] = {
         "index": [IsRoot],
-        "store": [IsProducerOrRoot],
+        "store": [IsRootOrPlatform],
     }
 
     def get_base_query(self, validated: dict) -> dict:

@@ -7,13 +7,13 @@ from rest_framework.response import Response
 
 from app.collections.log import Log
 from app.http.controllers.base import BaseController
-from app.http.permissions.role import IsProducerOrRoot
+from app.http.permissions.role import IsRootOrPlatform
 from app.http.requests.log.create_log import CreateLogRequestSerializer
 
 
 class LogController(BaseController):
     permissions: ClassVar[dict] = {
-        "store": [IsProducerOrRoot],
+        "store": [IsRootOrPlatform],
     }
 
     @action(detail=False, methods=["post"], url_path="")

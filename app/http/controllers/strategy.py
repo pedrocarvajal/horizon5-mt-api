@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from app.http.controllers.base import BaseController
-from app.http.permissions.role import IsProducerOrRoot, IsRoot
+from app.http.permissions.role import IsRoot, IsRootOrPlatform
 from app.http.requests.strategy.upsert_strategy import UpsertStrategyRequestSerializer
 from app.models import Strategy
 
@@ -14,7 +14,7 @@ from app.models import Strategy
 class StrategyController(BaseController):
     permissions: ClassVar[dict] = {
         "index": [IsRoot],
-        "upsert": [IsProducerOrRoot],
+        "upsert": [IsRootOrPlatform],
     }
 
     @action(detail=False, methods=["get"], url_path="")

@@ -13,11 +13,19 @@ if TYPE_CHECKING:
 
 
 class CanPushEvents(BaseAppPermission):
-    """Root or producer role."""
+    """Root (unrestricted) or producer who owns the target account."""
 
-    def has_authenticated_permission(self, request: Request, _view: APIView) -> bool:
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         user = cast("User", request.user)
-        return user.role in (SystemRole.ROOT, SystemRole.PRODUCER)
+
+        if user.role == SystemRole.ROOT:
+            return True
+
+        if user.role != SystemRole.PRODUCER:
+            return False
+
+        account_id = view.kwargs.get("id")
+        return self.is_account_owner(user, account_id)
 
 
 class CanConsumeEvents(BaseAppPermission):
@@ -44,8 +52,16 @@ class CanReadHistory(BaseAppPermission):
 
 
 class CanReadResponses(BaseAppPermission):
-    """Root or producer role."""
+    """Root (unrestricted) or producer who owns the target account."""
 
-    def has_authenticated_permission(self, request: Request, _view: APIView) -> bool:
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
         user = cast("User", request.user)
-        return user.role in (SystemRole.ROOT, SystemRole.PRODUCER)
+
+        if user.role == SystemRole.ROOT:
+            return True
+
+        if user.role != SystemRole.PRODUCER:
+            return False
+
+        account_id = view.kwargs.get("id")
+        return self.is_account_owner(user, account_id)

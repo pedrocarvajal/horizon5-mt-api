@@ -1,22 +1,25 @@
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from app.enums import SystemRole
 from app.http.controllers.base import BaseController
-from app.http.permissions.role import IsProducerOrRoot, IsRoot
+from app.http.permissions.role import IsRoot
 from app.http.requests.account.upsert_account import UpsertAccountRequestSerializer
 from app.models import Account
+from app.models.user import User
 
 
 class AccountController(BaseController):
     permissions: ClassVar[dict] = {
         "index": [IsRoot],
-        "upsert": [IsProducerOrRoot],
+        "upsert": [IsAuthenticated],
     }
 
     @action(detail=False, methods=["get"], url_path="")
@@ -37,18 +40,33 @@ class AccountController(BaseController):
 
         data = serializer.validated_data
         account_id = data.pop("account_id")
+        user = cast(User, request.user)
+        is_platform = user.role == SystemRole.PLATFORM
+
+        trading_fields = {key: value for key, value in data.items() if value is not None}
 
         with transaction.atomic():
             existing = Account.objects.select_for_update().filter(id=account_id).first()
 
-            if existing and existing.user_id != request.user.pk:
+            if is_platform:
+                if existing is None:
+                    raise NotFound("Account not found.")
+
+                Account.objects.filter(id=account_id).update(**trading_fields)
+
+                return self.reply(
+                    data={"id": account_id},
+                    status_code=status.HTTP_200_OK,
+                )
+
+            if existing and existing.user_id != user.pk:
                 raise PermissionDenied("You do not own this account.")
 
             account, created = Account.objects.update_or_create(
                 id=account_id,
                 defaults={
-                    "user": request.user,
-                    **{key: value for key, value in data.items() if value is not None},
+                    "user": user,
+                    **trading_fields,
                 },
             )
 

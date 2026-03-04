@@ -9,13 +9,13 @@ from rest_framework.response import Response
 
 from app.collections.order import Order
 from app.http.controllers.base import BaseController
-from app.http.permissions.role import IsProducerOrRoot
+from app.http.permissions.role import IsRootOrPlatform
 from app.http.requests.order.upsert_order import UpsertOrderRequestSerializer
 
 
 class OrderController(BaseController):
     permissions: ClassVar[dict] = {
-        "upsert": [IsProducerOrRoot],
+        "upsert": [IsRootOrPlatform],
     }
 
     @action(detail=False, methods=["post"], url_path="")
