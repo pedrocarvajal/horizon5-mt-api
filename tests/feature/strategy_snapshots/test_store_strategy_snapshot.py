@@ -23,22 +23,22 @@ VALID_PAYLOAD = {
 
 @pytest.mark.django_db
 class TestStoreStrategySnapshot:
-    def test_should_return_201_with_valid_data(self, producer_client, producer_account):
-        payload = {**VALID_PAYLOAD, "account_id": producer_account.id}
+    def test_should_return_201_with_valid_data(self, platform_client, platform_account):
+        payload = {**VALID_PAYLOAD, "account_id": platform_account.id}
 
-        response = producer_client.post(URL, payload, format="json")
+        response = platform_client.post(URL, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["success"] is True
 
-    def test_should_create_snapshot_in_mongodb(self, producer_client, producer_account):
-        payload = {**VALID_PAYLOAD, "account_id": producer_account.id}
+    def test_should_create_snapshot_in_mongodb(self, platform_client, platform_account):
+        payload = {**VALID_PAYLOAD, "account_id": platform_account.id}
 
-        producer_client.post(URL, payload, format="json")
+        platform_client.post(URL, payload, format="json")
 
-        assert StrategySnapshot.count({"account_id": producer_account.id}) == 1
-        snapshot = StrategySnapshot.find_one({"account_id": producer_account.id})
-        assert snapshot["account_id"] == producer_account.id
+        assert StrategySnapshot.count({"account_id": platform_account.id}) == 1
+        snapshot = StrategySnapshot.find_one({"account_id": platform_account.id})
+        assert snapshot["account_id"] == platform_account.id
         assert snapshot["strategy_id"] == STRATEGY_ID
 
     def test_should_return_403_when_account_not_owned(self, producer_client, platform_account):
@@ -48,10 +48,10 @@ class TestStoreStrategySnapshot:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_should_return_400_when_required_fields_missing(self, producer_client, producer_account):
-        payload = {"account_id": producer_account.id}
+    def test_should_return_400_when_required_fields_missing(self, platform_client, platform_account):
+        payload = {"account_id": platform_account.id}
 
-        response = producer_client.post(URL, payload, format="json")
+        response = platform_client.post(URL, payload, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
@@ -62,10 +62,10 @@ class TestStoreStrategySnapshot:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data["success"] is False
 
-    def test_should_return_403_when_user_has_platform_role(self, platform_client, platform_account):
-        payload = {**VALID_PAYLOAD, "account_id": platform_account.id}
+    def test_should_return_403_when_user_has_producer_role(self, producer_client, producer_account):
+        payload = {**VALID_PAYLOAD, "account_id": producer_account.id}
 
-        response = platform_client.post(URL, payload, format="json")
+        response = producer_client.post(URL, payload, format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

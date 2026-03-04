@@ -70,7 +70,7 @@ class TestListAccounts:
         emails = {account["user_email"] for account in response.data["data"]}
         assert emails == {root_user.email, other_user.email}
 
-    def test_should_return_meta_with_correct_count(self, root_client, root_account, producer_account, platform_account):  # noqa: ARG002
+    def test_should_return_meta_with_correct_count(self, root_client, root_account, producer_account, platform_account):
         response = root_client.get(URL)
 
         assert response.data["meta"]["count"] == 3

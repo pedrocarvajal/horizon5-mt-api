@@ -21,7 +21,13 @@ class CanUploadMedia(BaseAppPermission):
 
 
 class CanDownloadMedia(BaseAppPermission):
-    """Any authenticated user."""
+    """Root (unrestricted) or account owner."""
 
-    def has_authenticated_permission(self, _request: Request, _view: APIView) -> bool:
-        return True
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
+        user = cast("User", request.user)
+
+        if user.role == SystemRole.ROOT:
+            return True
+
+        account_id = view.kwargs.get("id")
+        return self.is_account_owner(user, account_id)

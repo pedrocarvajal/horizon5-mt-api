@@ -16,19 +16,19 @@ class TestMe:
         assert response.data["data"]["role"] == active_user.role
         assert "created_at" in response.data["data"]
 
-    def test_should_return_correct_role_for_root_user(self, root_client, root_user):  # noqa: ARG002
+    def test_should_return_correct_role_for_root_user(self, root_client, root_user):
         response = root_client.get("/api/v1/auth/me/")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["data"]["role"] == SystemRole.ROOT
 
-    def test_should_return_correct_role_for_producer_user(self, producer_client, producer_user):  # noqa: ARG002
+    def test_should_return_correct_role_for_producer_user(self, producer_client, producer_user):
         response = producer_client.get("/api/v1/auth/me/")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["data"]["role"] == SystemRole.PRODUCER
 
-    def test_should_return_correct_role_for_platform_user(self, platform_client, platform_user):  # noqa: ARG002
+    def test_should_return_correct_role_for_platform_user(self, platform_client, platform_user):
         response = platform_client.get("/api/v1/auth/me/")
 
         assert response.status_code == status.HTTP_200_OK

@@ -58,6 +58,16 @@ python manage.py dev_get_ticker --account-id 11912085 --symbols XAUUSD,EURUSD
 python manage.py dev_list_accounts
 ```
 
+### dev_get_strategies
+
+```bash
+python manage.py dev_get_strategies
+python manage.py dev_get_strategies --account-id 11912085
+python manage.py dev_get_strategies --symbol XAUUSD
+python manage.py dev_get_strategies --name "my strategy"
+python manage.py dev_get_strategies --account-id 11912085 --symbol XAUUSD --name "my strategy"
+```
+
 ### dev_list_strategies
 
 ```bash

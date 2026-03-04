@@ -75,10 +75,10 @@ class TestUpsertAccount:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data["success"] is False
 
-    def test_should_return_403_when_user_has_platform_role(self, platform_client):
+    def test_should_return_404_when_platform_user_tries_to_create_account(self, platform_client):
         response = platform_client.post(URL, VALID_PAYLOAD, format="json")
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_should_allow_root_user_to_create(self, root_client):
         response = root_client.post(URL, VALID_PAYLOAD, format="json")

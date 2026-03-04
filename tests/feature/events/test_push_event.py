@@ -22,7 +22,7 @@ VALID_PAYLOAD = {
 
 @pytest.mark.django_db
 class TestPushEvent:
-    def test_should_return_201_with_event_data(self, producer_client, producer_account):
+    def test_should_return_201_with_event_data(self, producer_client, producer_account, producer_strategy):
         response = producer_client.post(push_url(producer_account.id), VALID_PAYLOAD, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -33,7 +33,7 @@ class TestPushEvent:
         assert data["key"] == "post.order"
         assert data["status"] == EventStatus.PENDING
 
-    def test_should_create_event_in_database(self, producer_client, producer_account, producer_user):
+    def test_should_create_event_in_database(self, producer_client, producer_account, producer_user, producer_strategy):
         producer_client.post(push_url(producer_account.id), VALID_PAYLOAD, format="json")
 
         assert Event.count({"account_id": producer_account.id}) == 1
@@ -44,7 +44,7 @@ class TestPushEvent:
         assert event["response"] is None
         assert event["attempts"] == 0
 
-    def test_should_return_all_resource_fields(self, producer_client, producer_account):
+    def test_should_return_all_resource_fields(self, producer_client, producer_account, producer_strategy):
         response = producer_client.post(push_url(producer_account.id), VALID_PAYLOAD, format="json")
 
         data = response.data["data"]
@@ -125,7 +125,7 @@ class TestPushEvent:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_should_allow_root_user_to_push(self, root_client, producer_account):
+    def test_should_allow_root_user_to_push(self, root_client, producer_account, producer_strategy):
         response = root_client.post(push_url(producer_account.id), VALID_PAYLOAD, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED

@@ -38,7 +38,7 @@ class TestListApiKeys:
         names = {key["name"] for key in response.data["data"]}
         assert names == {"Key One", "Key Two"}
 
-    def test_should_return_only_own_keys_for_regular_user(self, authenticated_client, active_user, db):  # noqa: ARG002
+    def test_should_return_only_own_keys_for_regular_user(self, authenticated_client, active_user, db):
         create_api_key(active_user, name="My Key")
         other_user = create_user(email="other@test.co")
         create_api_key(other_user, name="Other Key")

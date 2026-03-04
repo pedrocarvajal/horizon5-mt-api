@@ -45,10 +45,16 @@ class CanAckEvents(BaseAppPermission):
 
 
 class CanReadHistory(BaseAppPermission):
-    """Any authenticated user."""
+    """Root or platform (unrestricted), or account owner."""
 
-    def has_authenticated_permission(self, _request: Request, _view: APIView) -> bool:
-        return True
+    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
+        user = cast("User", request.user)
+
+        if user.role in (SystemRole.ROOT, SystemRole.PLATFORM):
+            return True
+
+        account_id = view.kwargs.get("id")
+        return self.is_account_owner(user, account_id)
 
 
 class CanReadResponses(BaseAppPermission):
