@@ -2,7 +2,7 @@ from typing import Any, ClassVar
 
 from django.utils import timezone
 from pymongo import ASCENDING, DESCENDING
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -18,7 +18,6 @@ from app.http.requests.event.event_response import EventResponseRequestSerialize
 from app.http.requests.event.history_event import HistoryEventRequestSerializer
 from app.http.requests.event.push_event import PushEventRequestSerializer
 from app.http.resources.event import EventResource
-from app.models import Account
 
 
 class EventController(BaseController):
@@ -46,8 +45,7 @@ class EventController(BaseController):
 
     @action(detail=False, methods=["post"], url_path="")
     def push(self, request: Request, id: int) -> Response:
-        self._validate_account(id)
-        serializer = PushEventRequestSerializer(data=request.data)
+        serializer = PushEventRequestSerializer(data=request.data, context={"account_id": id})
         serializer.is_valid(raise_exception=True)
 
         payload = serializer.validated_data["payload"]
@@ -76,7 +74,6 @@ class EventController(BaseController):
 
     @action(detail=False, methods=["post"], url_path="consume")
     def consume(self, request: Request, id: int) -> Response:
-        self._validate_account(id)
         serializer = ConsumeEventRequestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
@@ -168,7 +165,6 @@ class EventController(BaseController):
 
     @action(detail=False, methods=["get"], url_path="history")
     def history(self, request: Request, id: int) -> Response:
-        self._validate_account(id)
         serializer = HistoryEventRequestSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
@@ -189,7 +185,6 @@ class EventController(BaseController):
 
     @action(detail=True, methods=["get"], url_path="response")
     def response(self, _request: Request, id: int, event_id: str) -> Response:
-        self._validate_account(id)
         serializer = EventResponseRequestSerializer(data={"event_id": event_id})
         serializer.is_valid(raise_exception=True)
 
@@ -217,7 +212,3 @@ class EventController(BaseController):
         return self.reply(
             data={"response": event["response"]},
         )
-
-    def _validate_account(self, account_id: int) -> None:
-        if not Account.objects.filter(id=account_id).exists():
-            raise serializers.ValidationError({"detail": "Account not found."})

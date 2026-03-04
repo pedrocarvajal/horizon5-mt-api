@@ -4,7 +4,6 @@ from typing import ClassVar
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +11,6 @@ from app.collections.order import Order
 from app.http.controllers.base import BaseController
 from app.http.permissions.role import IsProducerOrRoot
 from app.http.requests.order.upsert_order import UpsertOrderRequestSerializer
-from app.models import Account
 
 
 class OrderController(BaseController):
@@ -27,10 +25,6 @@ class OrderController(BaseController):
 
         data = serializer.validated_data
         order_id = str(data.pop("id"))
-
-        if not Account.objects.filter(id=data["account_id"], user=request.user).exists():
-            raise PermissionDenied("Account not found or not owned by you.")
-
         strategy_id = data.get("strategy_id")
         now = timezone.now()
 
@@ -43,10 +37,6 @@ class OrderController(BaseController):
         for key, value in data.items():
             if key not in ("account_id", "strategy_id"):
                 document[key] = float(value) if isinstance(value, Decimal) else value
-
-        existing = Order.collection().find_one({"_id": order_id})
-        if existing and existing["account_id"] != data["account_id"]:
-            raise PermissionDenied("You do not own this order.")
 
         previous = Order.collection().find_one_and_update(
             {"_id": order_id},

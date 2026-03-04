@@ -13,31 +13,15 @@ if TYPE_CHECKING:
 
 
 class CanUploadMedia(BaseAppPermission):
-    """Root or account owner with platform/root system role."""
+    """Root or platform role."""
 
-    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
+    def has_authenticated_permission(self, request: Request, _view: APIView) -> bool:
         user = cast("User", request.user)
-
-        if self.is_root(user):
-            return True
-
-        account_id = view.kwargs.get("id")
-
-        return self.is_account_owner(user, account_id) and user.role in (
-            SystemRole.ROOT,
-            SystemRole.PLATFORM,
-        )
+        return user.role in (SystemRole.ROOT, SystemRole.PLATFORM)
 
 
 class CanDownloadMedia(BaseAppPermission):
-    """Root or account owner with any system role."""
+    """Any authenticated user."""
 
-    def has_authenticated_permission(self, request: Request, view: APIView) -> bool:
-        user = cast("User", request.user)
-
-        if self.is_root(user):
-            return True
-
-        account_id = view.kwargs.get("id")
-
-        return self.is_account_owner(user, account_id)
+    def has_authenticated_permission(self, _request: Request, _view: APIView) -> bool:
+        return True

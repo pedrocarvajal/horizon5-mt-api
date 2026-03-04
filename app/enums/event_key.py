@@ -10,6 +10,7 @@ class EventKey(Enum):
     DELETE_ORDER = "delete.order"
     GET_ACCOUNT_INFO = "get.account.info"
     GET_KLINES = "get.klines"
+    GET_ORDERS = "get.orders"
     GET_TICKER = "get.ticker"
     PATCH_ACCOUNT_DISABLE = "patch.account.disable"
     PATCH_ACCOUNT_ENABLE = "patch.account.enable"
@@ -37,6 +38,19 @@ class EventKey(Enum):
             EventKey.DELETE_ORDER: {
                 "id": {"type": "integer", "required": True},
                 "strategy": {"type": "integer", "required": True},
+            },
+            EventKey.GET_ORDERS: {
+                "symbol": {"type": "string", "required": False, "max_length": 50},
+                "side": {
+                    "type": "string",
+                    "required": False,
+                    "choices": ["buy", "sell"],
+                },
+                "status": {
+                    "type": "string",
+                    "required": False,
+                    "choices": ["pending", "open", "closing", "closed", "cancelled"],
+                },
             },
             EventKey.GET_ACCOUNT_INFO: {},
             EventKey.GET_KLINES: {},

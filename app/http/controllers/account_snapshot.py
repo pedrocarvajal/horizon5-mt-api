@@ -2,7 +2,6 @@ from typing import ClassVar
 
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,7 +10,6 @@ from app.http.controllers.base import PaginatedController
 from app.http.permissions.role import IsProducerOrRoot, IsRoot
 from app.http.requests.account_snapshot.create_account_snapshot import CreateAccountSnapshotRequestSerializer
 from app.http.requests.account_snapshot.list_account_snapshot import ListAccountSnapshotRequestSerializer
-from app.models import Account
 
 
 class AccountSnapshotController(PaginatedController):
@@ -53,9 +51,6 @@ class AccountSnapshotController(PaginatedController):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
-
-        if not Account.objects.filter(id=data["account_id"], user=request.user).exists():
-            raise PermissionDenied("Account not found or not owned by you.")
 
         AccountSnapshot.create(
             {

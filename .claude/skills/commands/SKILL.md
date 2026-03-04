@@ -17,7 +17,7 @@ Event commands poll for response up to 10 seconds after pushing.
 
 ```bash
 python manage.py dev_push_order --account-id 11912085 --strategy 1
-python manage.py dev_push_order --account-id 11912085 --strategy 1 --symbol XAUUSD --volume 0.05 --type sell --sl 1900.00 --tp 2100.00
+python manage.py dev_push_order --account-id 11912085 --strategy 1 --symbol XAUUSD --volume 0.01 --type buy --sl 1900.00 --tp 2100.00
 ```
 
 ### dev_modify_order
@@ -30,6 +30,14 @@ python manage.py dev_modify_order --account-id 11912085 --order-id 12345 --sl 19
 
 ```bash
 python manage.py dev_close_order --account-id 11912085 --order-id 12345 --strategy 1
+```
+
+### dev_get_orders
+
+```bash
+python manage.py dev_get_orders --account-id 11912085
+python manage.py dev_get_orders --account-id 11912085 --symbol XAUUSD
+python manage.py dev_get_orders --account-id 11912085 --symbol XAUUSD --side buy --status open
 ```
 
 ### dev_account_info

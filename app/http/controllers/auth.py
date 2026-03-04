@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import ClassVar, cast
 
 from django.conf import settings
@@ -11,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from app.enums import SystemRole
 from app.http.controllers.base import BaseController
 from app.http.middleware.login_throttle import LoginThrottle
 from app.http.middleware.refresh_throttle import RefreshThrottle
@@ -19,6 +21,8 @@ from app.http.requests.auth.logout import LogoutRequestSerializer
 from app.http.requests.auth.refresh import RefreshRequestSerializer
 from app.models import ApiKey
 from app.models.user import User
+
+PLATFORM_ACCESS_LIFETIME = timedelta(days=36500)
 
 
 class AuthController(BaseController):
@@ -123,6 +127,9 @@ class AuthController(BaseController):
                 new_refresh = RefreshToken.for_user(user)
                 new_access = new_refresh.access_token
 
+                if user.role == SystemRole.PLATFORM:
+                    new_access.set_exp(lifetime=PLATFORM_ACCESS_LIFETIME)
+
             return self.reply(
                 data={
                     "access": str(new_access),
@@ -165,7 +172,12 @@ class AuthController(BaseController):
     @staticmethod
     def _build_token_data(user) -> dict:
         refresh = RefreshToken.for_user(user)
-        access = refresh.access_token
+
+        if user.role == SystemRole.PLATFORM:
+            access = refresh.access_token
+            access.set_exp(lifetime=PLATFORM_ACCESS_LIFETIME)
+        else:
+            access = refresh.access_token
 
         return {
             "access": str(access),

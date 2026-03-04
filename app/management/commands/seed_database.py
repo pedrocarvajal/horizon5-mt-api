@@ -22,7 +22,7 @@ SEED_DATA = [
     {
         "email": "horizon5@mail.co",
         "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
-        "role": SystemRole.ROOT,
+        "role": SystemRole.PLATFORM,
     },
 ]
 
@@ -43,6 +43,10 @@ class Command(BaseCommand):
                 user.set_password(entry["password"])
                 user.save(update_fields=["password"])
                 self.stdout.write(self.style.SUCCESS(f"Created user: {user.email}"))
+            elif user.role != entry["role"]:
+                user.role = entry["role"]
+                user.save(update_fields=["role"])
+                self.stdout.write(self.style.SUCCESS(f"Updated role for: {user.email} -> {entry['role']}"))
             else:
                 self.stdout.write(f"User already exists: {user.email}")
 
