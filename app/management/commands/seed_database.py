@@ -9,7 +9,7 @@ from app.models.user import User
 
 SEED_DATA = [
     {
-        "email": "h5-api@mail.co",
+        "email": "pedro@mail.co",
         "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
         "role": SystemRole.ROOT,
         "api_keys": [
@@ -20,21 +20,9 @@ SEED_DATA = [
         ],
     },
     {
-        "email": "h5-root@mail.co",
+        "email": "horizon5@mail.co",
         "password": os.environ.get("SEED_ROOT_PASSWORD", ""),
         "role": SystemRole.ROOT,
-    },
-    {
-        "email": "example-platform@mail.co",
-        "password": os.environ.get("SEED_PLATFORM_PASSWORD", ""),
-        "role": SystemRole.PLATFORM,
-        "accounts": [200000001],
-    },
-    {
-        "email": "example-producer@mail.co",
-        "password": os.environ.get("SEED_PRODUCER_PASSWORD", ""),
-        "role": SystemRole.PRODUCER,
-        "accounts": [200000001],
     },
 ]
 

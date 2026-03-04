@@ -1,7 +1,11 @@
-.PHONY: run-dev run-docker-up run-docker-build run-docker-down run-docker-up-prod run-docker-build-prod run-docker-down-prod run-db-migrate run-db-seed-database run-tests run-linter-checks run-linter-fixes run-hooks-install run-docs-bundle run-get-producer-credentials
+.PHONY: run-dev run-dev-tailscale run-docker-up run-docker-build run-docker-down run-docker-up-prod run-docker-build-prod run-docker-down-prod run-db-migrate run-db-seed-database run-tests run-linter-checks run-linter-fixes run-hooks-install run-docs-bundle run-get-producer-credentials
 
 run-dev:
 	@bash scripts/make/run-dev.sh
+	@bash scripts/make/run-docs-bundle.sh
+
+run-dev-tailscale:
+	@bash scripts/make/run-dev-tailscale.sh
 	@bash scripts/make/run-docs-bundle.sh
 
 run-docker-up:
