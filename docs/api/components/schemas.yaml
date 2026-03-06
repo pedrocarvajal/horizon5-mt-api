@@ -251,6 +251,46 @@ EventStatus:
   type: string
   enum: [pending, delivered, processed, failed]
 
+AccountStatusEnum:
+  type: string
+  enum: [active, inactive]
+
+UpdateAccountRequest:
+  type: object
+  properties:
+    status:
+      $ref: "#/AccountStatusEnum"
+    broker:
+      type: string
+      maxLength: 255
+    server:
+      type: string
+      maxLength: 255
+    currency:
+      type: string
+      maxLength: 10
+    leverage:
+      type: integer
+      minimum: 1
+    balance:
+      type: number
+      format: decimal
+    equity:
+      type: number
+      format: decimal
+    margin:
+      type: number
+      format: decimal
+    free_margin:
+      type: number
+      format: decimal
+    profit:
+      type: number
+      format: decimal
+    margin_level:
+      type: number
+      format: decimal
+
 UpsertAccountRequest:
   type: object
   required: [account_id]

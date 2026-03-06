@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db import models
 
+from app.enums import AccountStatus
 from app.models.base import BaseModel
 
 
@@ -20,6 +21,7 @@ class Account(BaseModel):
     free_margin = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal("0"))
     profit = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal("0"))
     margin_level = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0"))
+    status = models.CharField(max_length=20, choices=AccountStatus.choices, default=AccountStatus.ACTIVE)
 
     class Meta:
         db_table = "accounts"

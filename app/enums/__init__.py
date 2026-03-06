@@ -1,3 +1,4 @@
+from app.enums.account_status import AccountStatus
 from app.enums.close_reason import CloseReason
 from app.enums.event_key import EventKey
 from app.enums.event_status import EventStatus
@@ -9,6 +10,7 @@ from app.enums.order_status import OrderStatus
 from app.enums.system_role import SystemRole
 
 __all__ = [
+    "AccountStatus",
     "CloseReason",
     "EventKey",
     "EventStatus",

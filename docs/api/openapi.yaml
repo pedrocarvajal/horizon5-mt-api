@@ -75,6 +75,8 @@ paths:
     $ref: "paths/account.yaml#/list"
   /api/v1/account/:
     $ref: "paths/account.yaml#/upsert"
+  /api/v1/account/{id}/:
+    $ref: "paths/account.yaml#/update"
   /api/v1/strategies/:
     $ref: "paths/strategy.yaml#/list"
   /api/v1/strategy/:

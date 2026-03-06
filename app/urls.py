@@ -35,6 +35,7 @@ urlpatterns = Route.collect(
     ),
     Route.prefix("account").group(
         Route.post("", AccountController, "upsert"),
+        Route.patch("<int:id>/", AccountController, "update"),
     ),
     Route.prefix("account/<int:id>/events").group(
         Route.post("", EventController, "push"),

@@ -1,6 +1,7 @@
 import pytest
 from rest_framework import status
 
+from app.enums import AccountStatus
 from app.models import Account
 from tests.feature.conftest import create_user
 
@@ -57,6 +58,7 @@ class TestListAccounts:
         assert account_data["free_margin"] == "10300.00"
         assert account_data["profit"] == "500.00"
         assert account_data["margin_level"] == "5250.00"
+        assert account_data["status"] == "active"
         assert "created_at" in account_data
         assert "updated_at" in account_data
 
@@ -89,4 +91,107 @@ class TestListAccounts:
         response = api_client.get(URL)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data["success"] is False
+
+    def test_should_return_pagination_meta(self, root_client, root_account):
+        response = root_client.get(URL)
+
+        assert response.status_code == status.HTTP_200_OK
+        pagination = response.data["meta"]["pagination"]
+        assert "total" in pagination
+        assert "page" in pagination
+        assert "per_page" in pagination
+        assert "total_pages" in pagination
+
+    def test_should_return_filterable_and_orderable_columns_in_meta(self, root_client):
+        response = root_client.get(URL)
+
+        assert "filterable_columns" in response.data["meta"]
+        assert "orderable_columns" in response.data["meta"]
+
+
+@pytest.mark.django_db
+class TestListAccountsFiltering:
+    def test_should_filter_by_id(self, root_client, root_account, producer_account):
+        response = root_client.get(URL, {"filter_by": "id", "filter_value": root_account.id})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["meta"]["pagination"]["total"] == 1
+        assert response.data["data"][0]["id"] == root_account.id
+
+    def test_should_filter_by_status_active(self, root_client, root_user, producer_user):
+        Account.objects.create(id=111111, user=root_user, status=AccountStatus.ACTIVE)
+        Account.objects.create(id=222222, user=producer_user, status=AccountStatus.INACTIVE)
+
+        response = root_client.get(URL, {"filter_by": "status", "filter_value": AccountStatus.ACTIVE})
+
+        assert response.status_code == status.HTTP_200_OK
+        returned_ids = {a["id"] for a in response.data["data"]}
+        assert 111111 in returned_ids
+        assert 222222 not in returned_ids
+
+    def test_should_filter_by_status_inactive(self, root_client, root_user, producer_user):
+        Account.objects.create(id=111111, user=root_user, status=AccountStatus.ACTIVE)
+        Account.objects.create(id=222222, user=producer_user, status=AccountStatus.INACTIVE)
+
+        response = root_client.get(URL, {"filter_by": "status", "filter_value": AccountStatus.INACTIVE})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["meta"]["pagination"]["total"] == 1
+        assert response.data["data"][0]["id"] == 222222
+
+    def test_should_return_empty_when_id_does_not_exist(self, root_client):
+        response = root_client.get(URL, {"filter_by": "id", "filter_value": 999999999})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["data"] == []
+        assert response.data["meta"]["pagination"]["total"] == 0
+
+    def test_should_return_400_when_filter_by_is_invalid_column(self, root_client):
+        response = root_client.get(URL, {"filter_by": "broker", "filter_value": "ICMarkets"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["success"] is False
+
+    def test_should_return_400_when_filter_value_is_missing(self, root_client):
+        response = root_client.get(URL, {"filter_by": "status"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["success"] is False
+
+    def test_should_return_400_when_filter_by_is_missing(self, root_client):
+        response = root_client.get(URL, {"filter_value": "active"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["success"] is False
+
+
+@pytest.mark.django_db
+class TestListAccountsOrdering:
+    def test_should_order_by_id_ascending(self, root_client, root_user):
+        Account.objects.create(id=300, user=root_user)
+        Account.objects.create(id=100, user=root_user)
+        Account.objects.create(id=200, user=root_user)
+
+        response = root_client.get(URL, {"order_by": "id"})
+
+        assert response.status_code == status.HTTP_200_OK
+        ids = [a["id"] for a in response.data["data"]]
+        assert ids == sorted(ids)
+
+    def test_should_order_by_id_descending(self, root_client, root_user):
+        Account.objects.create(id=300, user=root_user)
+        Account.objects.create(id=100, user=root_user)
+        Account.objects.create(id=200, user=root_user)
+
+        response = root_client.get(URL, {"order_by": "-id"})
+
+        assert response.status_code == status.HTTP_200_OK
+        ids = [a["id"] for a in response.data["data"]]
+        assert ids == sorted(ids, reverse=True)
+
+    def test_should_return_400_when_order_by_column_is_not_allowed(self, root_client):
+        response = root_client.get(URL, {"order_by": "broker"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["success"] is False
