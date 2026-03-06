@@ -56,7 +56,7 @@ class Command(BaseEventCommand):
             self.stdout.write(self.style.WARNING(f"\nNo response after {MAX_POLL_ITERATIONS} attempts."))
             return
 
-        if not response_data.get("success"):
+        if response_data.get("status") != "success":
             self.stdout.write(self.style.ERROR("\nEvent completed with error."))
             return
 
