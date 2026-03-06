@@ -55,7 +55,16 @@ class EventKey(Enum):
                 },
             },
             EventKey.GET_ACCOUNT_INFO: {},
-            EventKey.GET_KLINES: {},
+            EventKey.GET_KLINES: {
+                "symbol": {"type": "string", "required": True},
+                "timeframe": {
+                    "type": "string",
+                    "required": True,
+                    "choices": ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"],
+                },
+                "from_date": {"type": "string", "required": True},
+                "to_date": {"type": "string", "required": True},
+            },
             EventKey.GET_TICKER: {
                 "symbols": {"type": "string", "required": True},
             },

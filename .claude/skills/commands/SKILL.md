@@ -53,6 +53,15 @@ python manage.py dev_account_info --account-id 11912085
 python manage.py dev_get_ticker --account-id 11912085 --symbols XAUUSD,EURUSD
 ```
 
+### dev_get_klines
+
+Pushes a `get.klines` event, waits for the EA to export candles to CSV and upload them, then downloads and previews the first/last 3 rows.
+
+```bash
+python manage.py dev_get_klines --account-id 11912085 --symbol XAUUSD --timeframe D1 --from-date 2025-01-01 --to-date 2025-12-31
+python manage.py dev_get_klines --account-id 11912085 --symbol EURUSD --timeframe H1 --from-date 2025-06-01 --to-date 2025-06-30
+```
+
 ### dev_list_accounts
 
 ```bash

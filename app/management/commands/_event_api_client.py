@@ -66,3 +66,9 @@ class EventApiClient:
         response = self.session.get(url, params=params)
         response.raise_for_status()
         return response.json()
+
+    def download_media(self, account_id: int, file_name: str) -> bytes:
+        url = f"{self.base_url}/api/v1/account/{account_id}/media/{file_name}/download/"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.content
