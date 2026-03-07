@@ -24,6 +24,11 @@ SEED_DATA = [
             },
         ],
     },
+    {
+        "email": os.environ.get("SEED_PRODUCER_EMAIL", ""),
+        "password": os.environ.get("SEED_PRODUCER_PASSWORD", ""),
+        "role": SystemRole.PRODUCER,
+    },
 ]
 
 
