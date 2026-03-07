@@ -132,6 +132,53 @@ upsert:
       "403":
         description: Account belongs to another user
 
+show:
+  get:
+    tags: [Accounts]
+    summary: Get account by ID
+    description: |
+      Returns a single trading account by its ID.
+
+      - **Root or Platform:** Can access any account.
+      - **Producer:** Can only access accounts they own.
+
+      **Permissions:** Authenticated user.
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        description: Account ID
+    responses:
+      "200":
+        description: Account details
+        content:
+          application/json:
+            example:
+              success: true
+              data:
+                id: 12345678
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                user_email: "user@example.com"
+                broker: "ICMarkets"
+                server: "ICMarketsSC-Demo"
+                currency: "USD"
+                leverage: 500
+                balance: "10000.00"
+                equity: "10250.50"
+                margin: "200.00"
+                free_margin: "10050.50"
+                profit: "250.50"
+                margin_level: "5125.25"
+                status: "active"
+                created_at: "2026-01-15T10:30:00+00:00"
+                updated_at: "2026-01-15T12:00:00+00:00"
+      "403":
+        description: Account belongs to another user
+      "404":
+        description: Account not found
+
 update:
   patch:
     tags: [Accounts]

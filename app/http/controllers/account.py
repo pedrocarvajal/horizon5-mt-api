@@ -26,6 +26,7 @@ class AccountController(BaseController):
 
     permissions: ClassVar[dict] = {
         "index": [IsRoot],
+        "show": [IsAuthenticated],
         "upsert": [IsAuthenticated],
         "update": [IsAuthenticated],
     }
@@ -73,6 +74,24 @@ class AccountController(BaseController):
                 "orderable_columns": self._orderable_columns,
             },
         )
+
+    @action(detail=False, methods=["get"], url_path="<int:id>")
+    def show(self, request: Request, id: int = 0) -> Response:
+        user = cast(User, request.user)
+        is_privileged = user.role in (SystemRole.PLATFORM, SystemRole.ROOT)
+
+        account = Account.objects.select_related("user").filter(id=id).first()
+
+        if account is None:
+            return self.reply(
+                data={"detail": "Account not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not is_privileged and account.user_id != user.pk:
+            raise PermissionDenied("You do not own this account.")
+
+        return self.reply(data=self._serialize_account(account))
 
     @action(detail=False, methods=["post"], url_path="")
     def upsert(self, request: Request) -> Response:
